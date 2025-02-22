@@ -1,9 +1,11 @@
 package com.akosgyongyosi.cashflow.controller;
 
+import com.akosgyongyosi.cashflow.entity.Role;
 import com.akosgyongyosi.cashflow.entity.User;
 import com.akosgyongyosi.cashflow.repository.UserRepository;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -13,26 +15,42 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepository) {
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Register a new user. Default role is VIEWER.
+     */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
+    public ResponseEntity<String> registerUser(@RequestBody User user) {
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email already in use.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already taken.");
         }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword())); // Encrypt password
+        user.setRole(Role.VIEWER); // Default role is VIEWER
         userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully.");
+        return ResponseEntity.ok("User registered successfully!");
     }
 
+    /**
+     * Login user and return role.
+     */
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody User loginUser) {
-        Optional<User> user = userRepository.findByEmail(loginUser.getEmail());
-        if (user.isPresent() && user.get().getPassword().equals(loginUser.getPassword())) {
-            return ResponseEntity.ok("Login successful.");
+    public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
+        Optional<User> userOptional = userRepository.findByEmail(loginRequest.getEmail());
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            if (passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+                return ResponseEntity.ok(user);
+            }
         }
-        return ResponseEntity.badRequest().body("Invalid credentials.");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials.");
     }
 }
