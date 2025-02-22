@@ -1,6 +1,5 @@
-// frontend/src/components/MyButton.jsx
 import React from 'react';
-import './MyButton.css'; // optional additional styling
+import './MyButton.css'; 
 
 const MyButton = ({ variant = 'primary', type = 'button', onClick, children }) => {
   const btnClass = `my-button ${variant}`;

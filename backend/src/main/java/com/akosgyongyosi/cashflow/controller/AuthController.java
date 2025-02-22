@@ -22,9 +22,6 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Register a new user. Default role is VIEWER.
-     */
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody User user) {
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
@@ -37,9 +34,6 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully!");
     }
 
-    /**
-     * Login user and return role.
-     */
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
         Optional<User> userOptional = userRepository.findByEmail(loginRequest.getEmail());

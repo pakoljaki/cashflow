@@ -1,4 +1,3 @@
-// frontend/src/pages/AdminDashboard.js
 import React, { useEffect, useState } from "react";
 
 const AdminDashboard = () => {
