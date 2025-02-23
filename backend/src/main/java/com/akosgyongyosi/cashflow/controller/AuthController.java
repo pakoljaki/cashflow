@@ -28,7 +28,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already taken.");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword())); // Encrypt password
+        user.setPassword(passwordEncoder.encode(user.getPassword())); 
         user.setRole(Role.VIEWER); // Default role is VIEWER
         userRepository.save(user);
         return ResponseEntity.ok("User registered successfully!");

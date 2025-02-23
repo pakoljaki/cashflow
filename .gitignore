@@ -49,3 +49,7 @@ build/
 # Ignore environment files
 .env
 application.properties
+
+# Ignore CSV files containing sensitive business and personal data
+csv_imports/
+*.csv
