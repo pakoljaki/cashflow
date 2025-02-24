@@ -13,7 +13,7 @@ public class CashflowApplication {
         SpringApplication.run(CashflowApplication.class, args);
     }
 
-	@Bean
+	/*@Bean
 	public CommandLineRunner run(CsvImportService csvImportService) {
 		return args -> {
 			if (System.getProperty("spring.test.context") == null) { // Skip in tests
@@ -22,6 +22,6 @@ public class CashflowApplication {
 				System.out.println("CSV import finished.");
 			}
 		};
-	}
+	}*/
 	
 }

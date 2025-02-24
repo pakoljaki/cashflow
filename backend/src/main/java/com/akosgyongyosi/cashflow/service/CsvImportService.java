@@ -15,6 +15,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.akosgyongyosi.cashflow.entity.TransactionMethod;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -252,6 +258,77 @@ public class CsvImportService {
             return CurrencyType.EUR;
         } else {
             return CurrencyType.HUF;  // fallback
+        }
+    }
+
+    /**
+     * Parses a single CSV file in-memory from the given InputStream,
+     * builds Transaction entities, and saves them to the database.
+     */
+    public void parseSingleFile(InputStream inputStream, String originalFilename) throws Exception {
+        // Example approach: parse the CSV lines using Commons CSV in memory
+        try (BufferedReader reader = new BufferedReader(
+                 new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withDelimiter(';'))) {
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+            int recordCount = 0;
+
+            for (CSVRecord record : csvParser) {
+                // Example columns: bookingDate, valueDate, ourAcct, partnerName, partnerAcct, amount, T/J, code, memo
+                try {
+                    LocalDate bookingDate = LocalDate.parse(record.get(0), formatter);
+                    LocalDate valueDate   = LocalDate.parse(record.get(1), formatter);
+                    String ourAccountNumber = record.get(2);
+                    String partnerName   = record.get(3);
+                    String partnerAcct   = record.get(4);
+                    BigDecimal amount    = new BigDecimal(record.get(5).replace(",", "."));
+
+                    TransactionDirection direction =
+                        "T".equals(record.get(6)) ? TransactionDirection.NEGATIVE : TransactionDirection.POSITIVE;
+
+                    String transactionCode = record.get(7);
+                    String memo = (record.size() > 8) ? record.get(8) : "";
+
+                    // find or create bank account
+                    Optional<BankAccount> ourAcctOpt = bankAccountRepository.findByAccountNumber(ourAccountNumber);
+                    if (ourAcctOpt.isEmpty()) {
+                        // skip if we can't find or create the account
+                        System.err.println("Skipping row, account not found: " + ourAccountNumber);
+                        continue;
+                    }
+                    BankAccount ourAccount = ourAcctOpt.get();
+
+                    // build the transaction
+                    Transaction tx = new Transaction();
+                    tx.setAccount(ourAccount);
+                    tx.setBookingDate(bookingDate);
+                    tx.setValueDate(valueDate);
+                    tx.setPartnerName(partnerName);
+                    tx.setPartnerAccountNumber(partnerAcct);
+                    tx.setAmount(amount);
+                    tx.setCurrency(ourAccount.getCurrency());  // or parse from filename if needed
+                    tx.setTransactionDirection(direction);
+                    tx.setTransactionCode(transactionCode);
+                    tx.setMemo(memo);
+
+                    // if you have transactionMethod
+                    tx.setTransactionMethod(TransactionMethod.TRANSFER);
+
+                    // optional category
+                    TransactionCategory category = categoryRepository.findByName(memo).orElse(null);
+                    tx.setCategory(category);
+
+                    // save transaction
+                    transactionRepository.save(tx);
+                    recordCount++;
+                } catch (Exception rowEx) {
+                    System.err.println("Skipping invalid row: " + record);
+                    rowEx.printStackTrace();
+                }
+            }
+
+            System.out.println("parseSingleFile: " + recordCount + " transactions saved from " + originalFilename);
         }
     }
 

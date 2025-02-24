@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AdminCsvUpload from './pages/AdminCsvUpload';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/" element={<Login />} />  {/* Default route */}
+        <Route path="/admin/csv-upload" element={<AdminCsvUpload />} />
       </Routes>
     </Router>
   );
