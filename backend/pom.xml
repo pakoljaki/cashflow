@@ -95,6 +95,20 @@
 			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
+		 <!-- MapStruct API -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.5.5.Final</version>  <!-- Use the latest stable version -->
+		</dependency>
+
+		<!-- MapStruct Annotation Processor -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct-processor</artifactId>
+			<version>1.5.5.Final</version>
+			<scope>provided</scope> <!-- Needed for compilation but not at runtime -->
+		</dependency>
 	</dependencies>
 
 	<build>
