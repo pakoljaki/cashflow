@@ -1,0 +1,128 @@
+/* Container wrapping the entire page: table on left, categories on right */
+.transactions-page {
+    display: flex;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 40px auto;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Left side: the table container */
+  .transactions-container {
+    flex: 2;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .transactions-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .transaction-table thead {
+    background: #007bff;
+    color: white;
+  }
+  
+  .transaction-table th, 
+  .transaction-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .transaction-table tbody tr:nth-child(odd) {
+    background-color: #f8f9fa;
+  }
+  
+  .transaction-table tbody tr:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+  }
+  
+  /* Highlight row if selected */
+  .selected-row {
+    background-color: #ffeeba !important; /* a light yellow highlight */
+  }
+  
+  /* Positive or negative amounts */
+  .positive {
+    color: green;
+    font-weight: bold;
+  }
+  .negative {
+    color: red;
+    font-weight: bold;
+  }
+  
+  /* Right side: the category side panel */
+  .category-panel {
+    flex: 1;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    height: fit-content;
+    min-height: 300px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Category headings */
+  .category-panel h4 {
+    font-size: 1.2rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-weight: bold;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+  }
+  
+  /* Category buttons list */
+  .category-button {
+    display: inline-block;
+    margin: 4px;
+    padding: 8px 12px;
+    background-color: #e2e6ea;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #495057;
+    transition: background-color 0.2s;
+  }
+  .category-button:hover {
+    background-color: #adb5bd;
+  }
+  
+  /* New category creation */
+  .new-category {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+  }
+  .new-category input {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+  
+  /* Info message style */
+  .info-message {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+  }
+  

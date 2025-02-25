@@ -1,0 +1,27 @@
+.my-navbar {
+    background-color: #343a40 !important; 
+    padding: 10px 20px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand-custom {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white !important;
+}
+
+.navbar-nav .nav-link {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8) !important;
+    padding: 8px 15px;
+    transition: background-color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+.navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.5);
+}

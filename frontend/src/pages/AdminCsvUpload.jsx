@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function AdminCsvUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    if (role !== 'ADMIN') {
+      setMessage('Access Denied: You must be an admin to upload files.');
+    }
+  }, []);
 
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
@@ -13,23 +22,29 @@ function AdminCsvUpload() {
       setMessage('No file selected');
       return;
     }
+    
+    const token = localStorage.getItem('token'); // Get the stored token
+    if (!token) {
+      setMessage('Unauthorized: Please log in again.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
       const response = await fetch('/api/admin/csv/upload', {
         method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
+
       if (response.ok) {
-        const text = await response.text();
-        setMessage('Upload success: ' + text);
+        setMessage('Upload successful');
       } else {
-        const errorText = await response.text();
-        setMessage('Upload failed: ' + errorText);
+        setMessage('Upload failed: ' + (await response.text()));
       }
     } catch (error) {
-      console.error('Error uploading file', error);
       setMessage('Error: ' + error.message);
     }
   };
@@ -37,8 +52,14 @@ function AdminCsvUpload() {
   return (
     <div>
       <h2>Admin CSV Upload (In-Memory Parsing)</h2>
-      <input type="file" accept=".csv" onChange={handleFileChange} />
-      <button onClick={handleUpload}>Upload & Parse</button>
+      {message.includes('Access Denied') ? (
+        <p>{message}</p>
+      ) : (
+        <>
+          <input type="file" accept=".csv" onChange={handleFileChange} />
+          <button onClick={handleUpload}>Upload & Parse</button>
+        </>
+      )}
       <p>{message}</p>
     </div>
   );

@@ -12,6 +12,8 @@ import static com.akosgyongyosi.cashflow.entity.TransactionType.TRANSFER;
 import static com.akosgyongyosi.cashflow.entity.TransactionType.UNKNOWN;*/
 import lombok.Getter;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 
 @Getter
 @Setter
@@ -53,8 +55,9 @@ public class Transaction {
     @Column(name = "transaction_code")
     private String transactionCode; // MKB-s tranzakciótípus kivonati kód
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @ManyToOne
-    @JoinColumn(name = "category_id")
+    @JoinColumn(name = "category_id", nullable = true)
     private TransactionCategory category; // Categorization of transactions
 
     @Column(columnDefinition = "TEXT")

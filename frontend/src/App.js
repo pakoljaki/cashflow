@@ -1,21 +1,23 @@
-
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MyNavbar from './components/MyNavBar';
+import HomePage from './pages/HomePage';
+import TransactionsPage from './pages/TransactionsPage';
 import AdminCsvUpload from './pages/AdminCsvUpload';
+// ... import more pages as needed
 
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/" element={<Login />} />  {/* Default route */}
-        <Route path="/admin/csv-upload" element={<AdminCsvUpload />} />
-      </Routes>
+      <MyNavbar />
+      <div style={{ padding: '20px' }}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/admin/csv-upload" element={<AdminCsvUpload />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          {/* Add other routes */}
+        </Routes>
+      </div>
     </Router>
   );
 }

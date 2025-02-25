@@ -19,12 +19,14 @@ public class TransactionCategory {
     private String name; // Example: "Salary", "Office Rent", "Marketing"
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TransactionDirection direction; // POSITIVE (jóváírás) or NEGATIVE (terhelés)
+    @Column(name = "direction") 
+    private TransactionDirection direction;
+
 
     @Column(name = "description")
     private String description; // Optional: explanation of category
 
     @OneToMany(mappedBy = "category")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Transaction> transactions;
 }
