@@ -7,4 +7,6 @@ public class WeeklyForecastDTO {
     private Map<Integer, BigDecimal> weeklyTotals;
     // plus any additional metadata (like plan start/end dates)
     // getters and setters...
+
+    //ez lehet folos lesz
 }

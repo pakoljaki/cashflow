@@ -16,9 +16,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t FROM Transaction t LEFT JOIN FETCH t.category")
     List<Transaction> findAllWithCategory();
 
-    // Fix: Use the property "bookingDate" instead of "date"
     List<Transaction> findByBookingDateBetween(LocalDate start, LocalDate end);
-
-
-
 }

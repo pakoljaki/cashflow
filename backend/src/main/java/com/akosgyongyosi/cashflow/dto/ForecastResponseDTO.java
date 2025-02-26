@@ -11,9 +11,7 @@ public class ForecastResponseDTO {
     
     private Long cashflowPlanId;
     
-    private Map<Integer, BigDecimal> weeklyTotals; // Key=Week Number, Value=Sum
+    private Map<Integer, BigDecimal> weeklyTotals; // key=Week Number, value=Sum
 
-    private List<ForecastTransactionDTO> forecastTransactions; // Detailed transactions
-
-    // Constructor, Getters, Setters
+    private List<ForecastTransactionDTO> forecastTransactions; 
 }

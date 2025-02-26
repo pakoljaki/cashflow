@@ -14,7 +14,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,11 +35,10 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already taken.");
         }
 
-        user.setPassword(user.getPassword()); // Assume password encoding is done elsewhere
+        user.setPassword(user.getPassword()); 
         user.setRole(Role.VIEWER);
         userRepository.save(user);
 
-        // FIXED: Now calls the correct overloaded method
         String jwt = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         return ResponseEntity.ok(jwt);
     }
@@ -53,14 +51,13 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        String token = jwtUtil.generateToken(userDetails); // Uses the correct method
+        String token = jwtUtil.generateToken(userDetails); 
         String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
         return ResponseEntity.ok(Map.of("token", token, "role", role));
     }
 }
 
-// Define LoginRequest class
 class LoginRequest {
     private String email;
     private String password;

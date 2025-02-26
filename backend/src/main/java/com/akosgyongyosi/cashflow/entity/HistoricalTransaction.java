@@ -18,8 +18,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-
-//we need this so historical data is immutable. We can modify this data when doing the forecasting, assumption making
+// we need this so historical data is immutable. We can modify this data when doing the forecasting, assumption making
 @Entity
 @Getter 
 @Setter
@@ -36,21 +35,18 @@ public class HistoricalTransaction {
     
     @ManyToOne
     @JoinColumn(name = "category_id")
-    @JsonIgnore // Prevents infinite recursion
+    @JsonIgnore // prevents infinite recursion
     private TransactionCategory category;
 
 
-    private LocalDate snapshotDate; // Date when this snapshot was created
+    private LocalDate snapshotDate; 
 
     @ManyToOne
     @JsonBackReference
-    private CashflowPlan cashflowPlan; // Link to forecast plan
+    private CashflowPlan cashflowPlan; // link to forecast plan
 
-    // 👇 This will ensure category name is included in the JSON response
     @JsonProperty("category")
     public String getCategoryName() { 
         return category != null ? category.getName() : "Uncategorized";
     }
-
-    // Getters and setters
 }

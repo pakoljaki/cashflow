@@ -19,12 +19,10 @@ public class JwtUtil {
     private final Key SECRET_KEY = Keys.hmacShaKeyFor(Decoders.BASE64.decode("8Abw2RxHm3uTmf9GsDXnf4leMVJA0u7sBw4VHrwlCyo="));
     private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 hours
 
-    // Generate Token using UserDetails
     public String generateToken(UserDetails userDetails) {
         return generateToken(userDetails.getUsername(), userDetails.getAuthorities().iterator().next().getAuthority());
     }
 
-    // Overloaded method to generate token using email and role
     public String generateToken(String email, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);

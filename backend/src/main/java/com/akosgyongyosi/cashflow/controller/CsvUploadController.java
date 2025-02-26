@@ -17,17 +17,12 @@ public class CsvUploadController {
         this.csvImportService = csvImportService;
     }
 
-    /**
-     * Uploads a CSV file via multipart/form-data, then parses it in memory
-     * (no storing on disk), and saves transactions immediately.
-     */
     @PostMapping("/upload")
     public ResponseEntity<?> uploadCsvFile(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("No file uploaded");
         }
         try (InputStream inputStream = file.getInputStream()) {
-            // parse the file in-memory
             csvImportService.parseSingleFile(inputStream, file.getOriginalFilename());
             return ResponseEntity.ok("File parsed successfully in memory.");
         } catch (Exception e) {

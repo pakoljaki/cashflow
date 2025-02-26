@@ -16,7 +16,7 @@ public class TransactionCategory {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String name; // Example: "Salary", "Office Rent", "Marketing"
+    private String name; // example: "Salary", "Office Rent", "Marketing"
 
     @Enumerated(EnumType.STRING)
     @Column(name = "direction") 
@@ -24,7 +24,7 @@ public class TransactionCategory {
 
 
     @Column(name = "description")
-    private String description; // Optional: explanation of category
+    private String description; // optional: explanation of category
 
     @OneToMany(mappedBy = "category")
     @com.fasterxml.jackson.annotation.JsonIgnore

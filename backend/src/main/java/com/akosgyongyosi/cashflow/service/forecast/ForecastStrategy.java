@@ -1,13 +1,13 @@
 package com.akosgyongyosi.cashflow.service.forecast;
 
-import java.math.BigDecimal;
-import java.util.Map;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
+import com.akosgyongyosi.cashflow.entity.PlanLineItem;
+import com.akosgyongyosi.cashflow.entity.LineItemType;
 
-/**
- * Interface for all forecast strategies.
- * Each implementation will modify the weekly forecast totals differently.
- */
+// Each implementation will handle a different LineItemType and update the cashflow plan’s baselineTransactions accordingly.
 public interface ForecastStrategy {
-    void applyForecast(Map<Integer, BigDecimal> weekTotals, CashflowPlan plan);
+
+    boolean supports(LineItemType type);
+
+    void applyForecast(CashflowPlan plan, PlanLineItem item);
 }

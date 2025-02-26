@@ -4,5 +4,5 @@ public enum LineItemType {
     RECURRING,
     ONE_TIME,
     CATEGORY_ADJUSTMENT
-    // Could add SALARY_GROWTH, HEADCOUNT, etc. if you want more fine-grained
+    // Could add SALARY_GROWTH, HEADCOUNT, etc. if more fine-grained is necessarry
 }

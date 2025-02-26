@@ -21,7 +21,5 @@ public class PlanLineItemDTO {
 
     private String frequency; // "WEEKLY", "MONTHLY", "QUARTERLY"
 
-    private BigDecimal percentageChange; // For category adjustments (e.g., +10%)
-
-    // Constructor, Getters, Setters
+    private BigDecimal percentageChange; // for category adjustments (e.g., +10%)
 }

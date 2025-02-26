@@ -1,17 +1,12 @@
 package com.akosgyongyosi.cashflow.service.forecast;
 
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
+import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.math.BigDecimal;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-/**
- * Main service to calculate cashflow forecasts by applying different strategies.
- */
+import java.util.List;
+
 @Service
 public class CashflowCalculationService {
 
@@ -22,26 +17,13 @@ public class CashflowCalculationService {
         this.forecastStrategies = forecastStrategies;
     }
 
-    /**
-     * Generates a weekly forecast based on a cashflow plan.
-     *
-     * @param plan The cashflow plan containing assumptions.
-     * @return A map where the key is the week number and the value is the total amount.
-     */
-    public Map<Integer, BigDecimal> calculateWeeklyTotals(CashflowPlan plan) {
-        Map<Integer, BigDecimal> weekTotals = new HashMap<>();
-
-        // Initialize the weekly totals map
-        long totalWeeks = ChronoUnit.WEEKS.between(plan.getStartDate(), plan.getEndDate()) + 1;
-        for (int week = 1; week <= totalWeeks; week++) {
-            weekTotals.put(week, BigDecimal.ZERO);
+    public void applyAllAssumptions(CashflowPlan plan) {
+        for (PlanLineItem item : plan.getLineItems()) {
+            for (ForecastStrategy strategy : forecastStrategies) {
+                if (strategy.supports(item.getType())) {
+                    strategy.applyForecast(plan, item);
+                }
+            }
         }
-
-        // Apply all forecast strategies to modify weekTotals
-        for (ForecastStrategy strategy : forecastStrategies) {
-            strategy.applyForecast(weekTotals, plan);
-        }
-
-        return weekTotals;
     }
 }

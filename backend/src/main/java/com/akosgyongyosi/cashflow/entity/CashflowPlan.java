@@ -29,17 +29,13 @@ public class CashflowPlan {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // The user-defined assumptions (modifications)
+    // user-defined assumptions (modifications)
     @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<PlanLineItem> lineItems = new ArrayList<>();
 
-    // NEW: Store the transactions from last year as the "baseline"
+    // store the transactions from last year as the "baseline"
     @OneToMany(mappedBy = "cashflowPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<HistoricalTransaction> baselineTransactions = new ArrayList<>();
-
-    
-
-    // Constructors, getters, setters...
 }

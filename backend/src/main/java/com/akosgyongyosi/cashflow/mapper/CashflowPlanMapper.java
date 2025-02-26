@@ -14,19 +14,19 @@ public interface CashflowPlanMapper {
 
     CashflowPlanMapper INSTANCE = Mappers.getMapper(CashflowPlanMapper.class);
 
-    // Convert entity to DTO
+    // convert cashflowplan entity to DTO
     CashflowPlanDTO toDTO(CashflowPlan plan);
 
-    // Convert DTO to entity
+    // convert DTO to entity
     CashflowPlan toEntity(CashflowPlanDTO dto);
 
-    // Convert line item to DTO
+    // convert line item entity to DTO
     PlanLineItemDTO toDTO(PlanLineItem item);
 
     // Convert DTO to entity
     PlanLineItem toEntity(PlanLineItemDTO dto);
 
-    // List conversions (MapStruct handles automatically)
+    // list conversions (MapStruct handles automatically)
     List<PlanLineItemDTO> toDTO(List<PlanLineItem> items);
     List<PlanLineItem> toEntity(List<PlanLineItemDTO> items);
 }

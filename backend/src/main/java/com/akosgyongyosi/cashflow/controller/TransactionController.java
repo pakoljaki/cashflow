@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Controller for managing transactions and categories.
- */
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
@@ -34,20 +31,11 @@ public class TransactionController {
         return allTx;
     }
     
-
-
-
-    /**
-     * ✅ Fetch all transaction categories.
-     */
     @GetMapping("/categories")
     public List<TransactionCategory> getAllCategories() {
         return categoryRepository.findAll();
     }
 
-    /**
-     * ✅ Fetch categories by transaction direction (POSITIVE or NEGATIVE).
-     */
     @GetMapping("/categories/direction")
     public ResponseEntity<List<TransactionCategory>> getCategoriesByDirection(
             @RequestParam TransactionDirection direction) {
@@ -55,9 +43,6 @@ public class TransactionController {
         return ResponseEntity.ok(list);
     }
 
-    /**
-     * ✅ Update the category of a single transaction.
-     */
     @PutMapping("/{transactionId}/category")
     public ResponseEntity<?> updateTransactionCategory(
             @PathVariable Long transactionId,
@@ -70,7 +55,6 @@ public class TransactionController {
         Transaction transaction = txOpt.get();
         TransactionDirection direction = transaction.getTransactionDirection();
 
-        // ✅ Create a new category if requested
         if (request.isCreateNewCategory()) {
             TransactionCategory newCat = new TransactionCategory();
             newCat.setName(request.getCategoryName());
@@ -80,7 +64,6 @@ public class TransactionController {
             TransactionCategory savedCategory = categoryRepository.save(newCat);
             transaction.setCategory(savedCategory);
         } else {
-            // ✅ Assign existing category
             Optional<TransactionCategory> categoryOpt = categoryRepository.findByName(request.getCategoryName());
             if (categoryOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body("Category not found with name: " + request.getCategoryName());
@@ -99,9 +82,6 @@ public class TransactionController {
         return ResponseEntity.ok("Transaction category updated");
     }
 
-    /**
-     * ✅ Bulk update: Assign multiple transactions to a single category.
-     */
     @PutMapping("/bulk-category")
     public ResponseEntity<?> assignBulkCategory(@RequestBody BulkCategoryRequest request) {
         if (request.getTransactionIds() == null || request.getTransactionIds().isEmpty()) {
@@ -112,7 +92,6 @@ public class TransactionController {
             return ResponseEntity.badRequest().body("No categoryId provided.");
         }
 
-        // Find category
         Optional<TransactionCategory> catOpt = categoryRepository.findById(request.getCategoryId());
         if (catOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Category not found with ID: " + request.getCategoryId());
@@ -140,9 +119,6 @@ public class TransactionController {
         return ResponseEntity.ok("Category assigned to " + txList.size() + " transactions.");
     }
 
-    /**
-     * ✅ Create a new category.
-     */
     @PostMapping("/categories")
     public ResponseEntity<?> createCategory(@RequestBody TransactionCategory newCategory) {
         if (categoryRepository.findByName(newCategory.getName()).isPresent()) {
@@ -153,9 +129,7 @@ public class TransactionController {
         return ResponseEntity.ok(savedCategory);
     }
 
-    /**
-     * DTO for updating a single transaction's category.
-     */
+    // DTO for updating a transactions category
     public static class CategoryUpdateRequest {
         private String categoryName;
         private boolean createNewCategory;
@@ -169,9 +143,8 @@ public class TransactionController {
         public void setDescription(String description) { this.description = description; }
     }
 
-    /**
-     * DTO for bulk updating transaction categories.
-     */
+    
+    // DTO for bulk updating transaction categories.
     public static class BulkCategoryRequest {
         private List<Long> transactionIds;
         private Long categoryId;

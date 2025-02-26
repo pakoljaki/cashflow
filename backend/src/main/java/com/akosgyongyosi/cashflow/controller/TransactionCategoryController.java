@@ -17,18 +17,11 @@ public class TransactionCategoryController {
         this.categoryRepository = categoryRepository;
     }
 
-    /**
-     * Returns all categories, e.g. for both POSITIVE and NEGATIVE direction.
-     */
     @GetMapping
     public List<TransactionCategory> getAllCategories() {
         return categoryRepository.findAll();
     }
 
-    /**
-     * Creates a new category with the given name and direction.
-     * e.g. { "name": "Salary", "direction": "POSITIVE" }
-     */
     @PostMapping
     public ResponseEntity<?> createCategory(@RequestBody CategoryRequest request) {
         // Optionally check if name already exists, etc.
@@ -46,12 +39,10 @@ public class TransactionCategoryController {
         return ResponseEntity.ok(saved); // returns the newly created category
     }
 
-    // Nested class for the request body
     public static class CategoryRequest {
         private String name;
         private com.akosgyongyosi.cashflow.entity.TransactionDirection direction;
 
-        // getters & setters
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
 

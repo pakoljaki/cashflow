@@ -30,27 +30,27 @@ public class Transaction {
     private BankAccount account;
 
     @Column(nullable = false)
-    private LocalDate bookingDate; // Könyvelés dátuma (ÉÉÉÉ.HH.NN)
+    private LocalDate bookingDate; 
 
     @Column(nullable = false)
-    private LocalDate valueDate; // Értéknap (ÉÉÉÉ.HH.NN)
+    private LocalDate valueDate; 
 
     @Column(name = "partner_name")
-    private String partnerName; // Partner neve
+    private String partnerName; 
 
     @Column(name = "partner_account_number")
-    private String partnerAccountNumber; // Partner számlaszáma
+    private String partnerAccountNumber;
 
     @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal amount; // Összeg
+    private BigDecimal amount; 
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CurrencyType currency; // Currency of transaction
+    private CurrencyType currency;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
-    private TransactionDirection transactionDirection; // "T" (Expense) or "J" (Revenue)
+    private TransactionDirection transactionDirection; // POSITIVE or NEGATIVE
 
     @Column(name = "transaction_code")
     private String transactionCode; // MKB-s tranzakciótípus kivonati kód
@@ -58,12 +58,11 @@ public class Transaction {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = true)
-    private TransactionCategory category; // Categorization of transactions
+    private TransactionCategory category; // categorization of transactions
 
     @Column(columnDefinition = "TEXT")
-    private String memo; // Közlemény
+    private String memo;
 
-    // NEW FIELD: transactionMethod
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_method", nullable = false)
     private TransactionMethod transactionMethod;
@@ -85,6 +84,4 @@ public class Transaction {
         this.category = category;
         this.memo = memo;
     }
-
-    // Getters and Setters...
 }

@@ -1,27 +1,31 @@
 package com.akosgyongyosi.cashflow.service.forecast.strategy;
 
-import com.akosgyongyosi.cashflow.entity.CashflowPlan;
-import com.akosgyongyosi.cashflow.entity.LineItemType;
-import com.akosgyongyosi.cashflow.entity.PlanLineItem;
+import com.akosgyongyosi.cashflow.entity.*;
 import com.akosgyongyosi.cashflow.service.forecast.ForecastStrategy;
 import org.springframework.stereotype.Component;
-import java.math.BigDecimal;
-import java.util.Map;
 
-/**
- * Adjusts forecast values for entire categories.
- */
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 @Component
 public class CategoryAdjustmentStrategy implements ForecastStrategy {
 
     @Override
-    public void applyForecast(Map<Integer, BigDecimal> weekTotals, CashflowPlan plan) {
-        for (PlanLineItem item : plan.getLineItems()) {
-            if (item.getType() == LineItemType.CATEGORY_ADJUSTMENT) {
-                for (int week = item.getStartWeek(); week <= item.getEndWeek(); week++) {
-                    BigDecimal baseline = weekTotals.getOrDefault(week, BigDecimal.ZERO);
-                    BigDecimal adjustedAmount = baseline.multiply(BigDecimal.valueOf(1 + item.getPercentChange()));
-                    weekTotals.put(week, adjustedAmount);
+    public boolean supports(LineItemType type) {
+        return type == LineItemType.CATEGORY_ADJUSTMENT;
+    }
+
+    @Override
+    public void applyForecast(CashflowPlan plan, PlanLineItem item) {
+        for (HistoricalTransaction transaction : plan.getBaselineTransactions()) {
+            if (transaction.getCategory() != null && transaction.getCategory().equals(item.getCategory())) {
+                LocalDate txDate = transaction.getTransactionDate();
+                LocalDate startDate = plan.getStartDate().plusWeeks(item.getStartWeek());
+                LocalDate endDate = plan.getStartDate().plusWeeks(item.getEndWeek());
+
+                if (!txDate.isBefore(startDate) && !txDate.isAfter(endDate)) {
+                    BigDecimal adjustedAmount = transaction.getAmount().multiply(BigDecimal.valueOf(1 + item.getPercentChange()));
+                    transaction.setAmount(adjustedAmount);
                 }
             }
         }

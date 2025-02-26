@@ -15,7 +15,5 @@ public class ForecastTransactionDTO {
     private LocalDate transactionDate;
 
     private boolean isAssumptionBased; // True if this is from an assumption, false if from historical data
-
-    // Constructor, Getters, Setters
 }
 

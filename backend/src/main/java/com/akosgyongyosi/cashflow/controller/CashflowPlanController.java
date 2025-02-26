@@ -1,5 +1,6 @@
 package com.akosgyongyosi.cashflow.controller;
 
+import com.akosgyongyosi.cashflow.dto.CreatePlanRequestDTO;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 import com.akosgyongyosi.cashflow.service.CashflowPlanService;
 import org.springframework.http.ResponseEntity;
@@ -17,36 +18,35 @@ public class CashflowPlanController {
         this.planService = planService;
     }
 
-    /**
-     * Create a new cashflow plan from last year's transactions.
-     * Example request:
-     * POST /api/cashflow-plans/from-last-year?planName=2025%20Plan&startDate=2025-01-01&endDate=2025-12-31
-     */
-    @PostMapping("/from-last-year")
-    public ResponseEntity<CashflowPlan> createPlanFromLastYear(
-            @RequestParam String planName,
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
+    @PostMapping("/for-current-year") 
+    public ResponseEntity<CashflowPlan> createPlanForCurrentYear(@RequestParam String planName) {
 
-        LocalDate start = LocalDate.parse(startDate);
-        LocalDate end = LocalDate.parse(endDate);
+        LocalDate currentYearStart = LocalDate.now().withDayOfYear(1);
+        LocalDate currentYearEnd = LocalDate.now().withDayOfYear(currentYearStart.lengthOfYear());
 
-        CashflowPlan plan = planService.createPlanFromLastYear(planName, start, end);
+        CashflowPlan plan = planService.createPlanForInterval(planName, currentYearStart, currentYearEnd);
+
         return ResponseEntity.ok(plan);
     }
 
-    /**
-     * Create a new cashflow plan manually.
-     */
-    @PostMapping
-    public ResponseEntity<CashflowPlan> createPlan(@RequestBody CashflowPlan plan) {
-        CashflowPlan saved = planService.createPlan(plan);
-        return ResponseEntity.ok(saved);
+
+    @PostMapping("/for-interval")
+    public ResponseEntity<CashflowPlan> createPlanForInterval(@RequestBody CreatePlanRequestDTO request) {
+        LocalDate start = request.getStartDate();
+        LocalDate end = request.getEndDate();
+
+        if (request.getPlanName() == null || request.getPlanName().isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        if (start.isAfter(end)) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        CashflowPlan plan = planService.createPlanForInterval(request.getPlanName(), start, end);
+        return ResponseEntity.ok(plan);
     }
 
-    /**
-     * Get a cashflow plan by ID.
-     */
+
     @GetMapping("/{planId}")
     public ResponseEntity<CashflowPlan> getPlan(@PathVariable Long planId) {
         return planService.getPlan(planId)
