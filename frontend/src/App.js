@@ -4,7 +4,7 @@ import MyNavbar from './components/MyNavBar';
 import HomePage from './pages/HomePage';
 import TransactionsPage from './pages/TransactionsPage';
 import AdminCsvUpload from './pages/AdminCsvUpload';
-// ... import more pages as needed
+
 
 function App() {
   return (
@@ -15,7 +15,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/admin/csv-upload" element={<AdminCsvUpload />} />
           <Route path="/transactions" element={<TransactionsPage />} />
-          {/* Add other routes */}
+          {/* other routes */}
         </Routes>
       </div>
     </Router>

@@ -6,7 +6,6 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState([]);
   const [selectedDirection, setSelectedDirection] = useState(null); 
-  // (null, "POSITIVE", or "NEGATIVE")
 
   const [categories, setCategories] = useState([]);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -19,14 +18,12 @@ export default function TransactionsPage() {
     })
       .then(res => res.json())
       .then(data => {
-        console.log("Transactions received:", data); // Debugging log
+        console.log("Transactions received:", data); 
         setTransactions(data);
       })
       .catch(err => console.error('Error loading transactions', err));
   }, []);
   
-
-  // 2) Load all categories
   useEffect(() => {
     const token = localStorage.getItem('token');
     fetch('/api/categories', {
@@ -37,16 +34,11 @@ export default function TransactionsPage() {
       .catch(err => console.error('Error loading categories', err));
   }, []);
 
-  // Handle row click: 
-  // If no rows selected yet, set selectedDirection to row's direction.
-  // If direction matches, toggle selection. If not, do nothing.
   const handleRowClick = (tx) => {
-    // if already selected => unselect
     if (selectedTransactionIds.includes(tx.id)) {
       const newIds = selectedTransactionIds.filter(id => id !== tx.id);
       setSelectedTransactionIds(newIds);
 
-      // if that was the last selection, reset direction
       if (newIds.length === 0) {
         setSelectedDirection(null);
       }
@@ -67,11 +59,11 @@ export default function TransactionsPage() {
     }
   };
 
-  // Return a filtered list of categories for the selected direction
+  // return a filtered list of categories for the selected direction
   const positiveCategories = categories.filter(cat => cat.direction === "POSITIVE");
   const negativeCategories = categories.filter(cat => cat.direction === "NEGATIVE");
 
-  // If user clicks a category button -> bulk update
+  // if user clicks a category button -> bulk update
   const handleCategoryClick = async (catId) => {
     if (selectedTransactionIds.length === 0) {
       alert("No transactions selected.");
@@ -97,7 +89,7 @@ export default function TransactionsPage() {
       setMessage("Category updated successfully!");
       // refresh
       refreshTransactions();
-      // Clear selection
+      // clear selection
       setSelectedTransactionIds([]);
       setSelectedDirection(null);
     } catch (err) {
@@ -106,7 +98,7 @@ export default function TransactionsPage() {
     }
   };
 
-  // Create new category for the selected direction
+  // create new category for the selected direction
   const handleCreateCategory = async () => {
     if (!selectedDirection) {
       alert("Select at least one transaction first (to define the direction), or pick a direction.");
@@ -135,8 +127,8 @@ export default function TransactionsPage() {
       }
       setMessage("New category created!");
       setNewCategoryName('');
-      // Reload categories
-      const data = await resp.json(); // e.g. { id, name, direction }
+      // reload categories
+      const data = await resp.json(); 
       setCategories(old => [...old, data]);
     } catch (err) {
       console.error(err);
@@ -153,7 +145,7 @@ export default function TransactionsPage() {
         if (!res.ok) throw new Error('Failed to fetch transactions');
         
         const data = await res.json();
-        setTransactions(data); // Ensure ALL transactions are set again
+        setTransactions(data);
     } catch (err) {
         console.error('Error refreshing transactions:', err);
     }
