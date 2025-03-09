@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,6 +14,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@EqualsAndHashCode
 @Table(name = "plan_line_items")
 public class PlanLineItem {
 
@@ -41,6 +43,8 @@ public class PlanLineItem {
 
     private int startWeek;  // week-based calculations
     private int endWeek;    // week-based calculations
+
+    //TODO: refactor planLineItem to use startDay and endDay
 
     // For category-level adjustments:
     // E.g. "Marketing", "Salaries", "Rent"

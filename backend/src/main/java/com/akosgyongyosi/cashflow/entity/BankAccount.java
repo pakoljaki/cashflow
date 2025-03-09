@@ -1,12 +1,14 @@
 package com.akosgyongyosi.cashflow.entity;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 @Entity
+@EqualsAndHashCode
 @Table(name = "bank_accounts")
 public class BankAccount {
     @Id

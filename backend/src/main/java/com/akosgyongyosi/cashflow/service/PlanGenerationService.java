@@ -3,6 +3,10 @@ package com.akosgyongyosi.cashflow.service;
 import com.akosgyongyosi.cashflow.entity.*;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,6 +26,7 @@ public class PlanGenerationService {
         this.planRepository = planRepository;
     }
 
+    @Transactional
     public CashflowPlan generatePlanFromLastYear(LocalDate from, LocalDate to, String planName) {
         // 1) Create a new plan 
         CashflowPlan plan = new CashflowPlan();

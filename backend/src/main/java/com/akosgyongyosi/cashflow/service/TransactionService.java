@@ -2,6 +2,10 @@ package com.akosgyongyosi.cashflow.service;
 
 import com.akosgyongyosi.cashflow.entity.Transaction;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +25,7 @@ public class TransactionService {
         return transactionRepository.findAll();
     }
 
+    @Transactional
     public void saveTransaction(Transaction transaction) {
         transactionRepository.save(transaction);
     }

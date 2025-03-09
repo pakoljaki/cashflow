@@ -2,12 +2,15 @@ package com.akosgyongyosi.cashflow.entity;
 
 import jakarta.persistence.*;
 import java.util.List;
+
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 @Entity
+@EqualsAndHashCode
 @Table(name = "transaction_categories")
 public class TransactionCategory {
 
@@ -17,6 +20,9 @@ public class TransactionCategory {
 
     @Column(unique = true, nullable = false)
     private String name; // example: "Salary", "Office Rent", "Marketing"
+
+    // Boolean inflationFollowing;
+
 
     @Enumerated(EnumType.STRING)
     @Column(name = "direction") 

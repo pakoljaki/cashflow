@@ -79,6 +79,7 @@ public class CsvImportService {
         }
     }
 
+    @Transactional
     private void processFile(Path filePath) {
         String fileName = filePath.getFileName().toString();
         System.out.println("Processing file: " + fileName);
@@ -116,6 +117,7 @@ public class CsvImportService {
         }
     }
 
+    @Transactional
     private Transaction mapToTransaction(CSVRecord record, CurrencyType fileCurrency) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -195,9 +197,8 @@ public class CsvImportService {
         }
     }
 
-    /**
-     * If no matching category found, we assign "Unassigned(Positive)" or "Unassigned(Negative)".
-     */
+  
+    @Transactional 
     private TransactionCategory assignUnassignedCategory(TransactionDirection direction) {
         // We'll create unique name for each direction
         String unassignedName = "Unassigned(" + direction.name() + ")";
@@ -216,6 +217,7 @@ public class CsvImportService {
         return categoryRepository.save(newCat);
     }
 
+    @Transactional
     private BankAccount findOrCreateBankAccount(String accountNumber, 
                                                 String owner, 
                                                 CurrencyType currency,
@@ -307,6 +309,7 @@ public class CsvImportService {
         }
     }
 
+    @Transactional
     private void renameFileAsProcessed(Path filePath) {
         /*try {
             Path newPath = filePath.getParent().resolve(

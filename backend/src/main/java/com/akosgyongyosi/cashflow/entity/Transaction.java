@@ -7,6 +7,8 @@ import java.time.format.DateTimeFormatter;
 
 import static com.akosgyongyosi.cashflow.entity.TransactionDirection.NEGATIVE;
 import static com.akosgyongyosi.cashflow.entity.TransactionDirection.POSITIVE;
+
+import lombok.EqualsAndHashCode;
 /*import static com.akosgyongyosi.cashflow.entity.TransactionType.CASH;
 import static com.akosgyongyosi.cashflow.entity.TransactionType.TRANSFER;
 import static com.akosgyongyosi.cashflow.entity.TransactionType.UNKNOWN;*/
@@ -18,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Getter
 @Setter
 @Entity
+@EqualsAndHashCode
 @Table(name = "transactions")
 public class Transaction {
 

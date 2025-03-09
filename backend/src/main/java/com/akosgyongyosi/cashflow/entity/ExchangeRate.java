@@ -1,11 +1,18 @@
 package com.akosgyongyosi.cashflow.entity;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 
 @Entity
+@EqualsAndHashCode
+@Getter
+@Setter
 @Table(name = "exchange_rates")
 public class ExchangeRate {
     @Id
