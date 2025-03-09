@@ -21,27 +21,28 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Used by Spring Security to authenticate a user
-     * (e.g., from AuthController -> authenticationManager).
-     */
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
-        // Convert user roles to Spring Security authorities
-        var authorities = user.getRoles().stream()
-            .map(Role::name)                // e.g. "ADMIN"
-            .map(roleName -> "ROLE_" + roleName) 
-            .map(SimpleGrantedAuthority::new)
-            .collect(Collectors.toList());
+        // 🔍 Debug: Print roles
+        System.out.println("Roles loaded from database: " + user.getRoles());
 
-        // Build a userDetails object with the roles
+        // Convert roles to Spring Security authorities
+        var authorities = user.getRoles().stream()
+            .map(role -> "ROLE_" + role.name())  // Ensure "ROLE_" prefix is added
+            .map(SimpleGrantedAuthority::new)
+            .toList();
+
+        // 🔍 Debug: Print extracted authorities
+        System.out.println("Spring Authorities: " + authorities);
+
         return org.springframework.security.core.userdetails.User
             .withUsername(user.getEmail())
-            .password(user.getPassword())  // hashed password from DB
+            .password(user.getPassword())  
             .authorities(authorities)
             .build();
     }
+
 }

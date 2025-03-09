@@ -27,25 +27,17 @@ public class JwtUtil {
     // 10 hours
     private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10;
 
-    /**
-     * Generate a token from a Spring Security UserDetails.
-     * This expects that userDetails.getAuthorities() can be mapped
-     * to a list of role names (e.g. ["ADMIN","VIEWER"]).
-     */
     public String generateToken(UserDetails userDetails) {
         List<String> roleNames = userDetails.getAuthorities().stream()
-            .map(auth -> auth.getAuthority())
-            .collect(Collectors.toList());
-
-        return buildToken(
-            userDetails.getUsername(),
-            roleNames
-        );
+            .map(auth -> auth.getAuthority())  // Keep "ROLE_ADMIN"
+            .toList();
+    
+        System.out.println("Roles added to JWT: " + roleNames); // Debug
+    
+        return buildToken(userDetails.getUsername(), roleNames);
     }
-
-    /**
-     * Generate a token from an email and a set of roles (the domain enum).
-     */
+    
+    
     public String generateToken(String email, Set<com.akosgyongyosi.cashflow.entity.Role> roles) {
         List<String> roleNames = roles.stream()
             .map(Enum::name)
@@ -54,9 +46,6 @@ public class JwtUtil {
         return buildToken(email, roleNames);
     }
 
-    /**
-     * Internal helper that actually builds and signs the JWT.
-     */
     private String buildToken(String subject, List<String> roleNames) {
         long now = System.currentTimeMillis();
 
@@ -71,9 +60,6 @@ public class JwtUtil {
             .compact();
     }
 
-    /**
-     * Parse the token once and return the claims. Throw JwtException if invalid.
-     */
     public Claims parseToken(String token) {
         return Jwts.parserBuilder()
                    .setSigningKey(SECRET_KEY)

@@ -44,6 +44,8 @@ public class CashflowPlan {
     @JsonManagedReference
     private List<PlanLineItem> lineItems = new ArrayList<>();
 
+    //SET
+
     // store the transactions from last year as the "baseline"
     @OneToMany(mappedBy = "cashflowPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

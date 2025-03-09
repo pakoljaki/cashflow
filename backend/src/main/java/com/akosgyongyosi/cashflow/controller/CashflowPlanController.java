@@ -58,7 +58,6 @@ public class CashflowPlanController {
     }
 
     /**
-     * NEW endpoint:
      * Accepts the plan name, start date, end date, and startBalance,
      * then creates 3 scenario plans (Worst, Realistic, Best).
      *

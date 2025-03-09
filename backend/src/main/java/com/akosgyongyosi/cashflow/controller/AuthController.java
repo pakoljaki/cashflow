@@ -88,16 +88,20 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        // Create JWT from userDetails (which should contain all authorities)
+        // Print roles to verify
+        System.out.println("Extracted roles from userDetails: " + userDetails.getAuthorities());
+
+        // Create JWT from userDetails
         String token = jwtUtil.generateToken(userDetails);
 
-        // Convert authorities to a list of string roles (e.g. "ROLE_ADMIN")
-        // and strip the "ROLE_" prefix if you want just the pure role name.
+        // Extract roles
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(auth -> auth.getAuthority().replace("ROLE_", ""))
+                .map(auth -> auth.getAuthority())  
                 .collect(Collectors.toList());
 
-        // Return the token and roles
+        System.out.println("Roles being stored in JWT: " + roles);
+
         return ResponseEntity.ok(new LoginResponseDTO(token, roles));
     }
+
 }

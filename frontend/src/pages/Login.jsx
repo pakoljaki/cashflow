@@ -14,29 +14,30 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+    const response = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-      });
+    });
 
-      if (response.ok) {
+    if (response.ok) {
         const data = await response.json();
-        localStorage.setItem("token", data.token); // Store JWT token
-        localStorage.setItem("userRole", data.role); // Store user role
+        localStorage.setItem("token", data.token);
 
-        console.log("Login successful. Role:", data.role);
-        navigate("/dashboard"); // Redirect to Dashboard
-      } else {
-        alert("Invalid credentials");
-      }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      alert("Something went wrong. Please try again.");
+        if (data.roles && data.roles.length > 0) {
+            localStorage.setItem("userRole", data.roles[0]);  // Store role correctly
+            console.log("Login successful. Role:", data.roles[0]);
+        } else {
+            console.error("Role is missing in response!");
+        }
+
+        navigate("/dashboard");
+    } else {
+        alert("Login failed");
     }
   };
+
+
 
   return (
     <div className="login-container">

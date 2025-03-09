@@ -5,12 +5,11 @@ function AdminCsvUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    if (role !== 'ADMIN') {
-      setMessage('Access Denied: You must be an admin to upload files.');
-    }
+    const storedRole = localStorage.getItem('userRole');
+    setRole(storedRole);
   }, []);
 
   const handleFileChange = (e) => {
@@ -23,7 +22,7 @@ function AdminCsvUpload() {
       return;
     }
     
-    const token = localStorage.getItem('token'); // Get the stored token
+    const token = localStorage.getItem('token');
     if (!token) {
       setMessage('Unauthorized: Please log in again.');
       return;
@@ -49,17 +48,15 @@ function AdminCsvUpload() {
     }
   };
 
+  if (role !== 'ROLE_ADMIN') {
+    return <div><p>Access Denied: You must be an admin to upload files.</p></div>;
+  }
+
   return (
     <div>
       <h2>Admin CSV Upload (In-Memory Parsing)</h2>
-      {message.includes('Access Denied') ? (
-        <p>{message}</p>
-      ) : (
-        <>
-          <input type="file" accept=".csv" onChange={handleFileChange} />
-          <button onClick={handleUpload}>Upload & Parse</button>
-        </>
-      )}
+      <input type="file" accept=".csv" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload & Parse</button>
       <p>{message}</p>
     </div>
   );
