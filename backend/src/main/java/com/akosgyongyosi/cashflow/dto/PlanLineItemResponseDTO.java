@@ -13,7 +13,8 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Data
-public class PlanLineItemRequestDTO {
+public class PlanLineItemResponseDTO {
+    private Long id;
     private String title;
     private LineItemType type;
     private BigDecimal amount;
@@ -22,5 +23,5 @@ public class PlanLineItemRequestDTO {
     private LocalDate endDate;
     private Double percentChange;
     private LocalDate transactionDate;
-    private Long categoryId;
+    private String categoryName;
 }

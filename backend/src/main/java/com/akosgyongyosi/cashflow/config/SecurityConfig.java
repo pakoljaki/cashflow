@@ -42,7 +42,9 @@ public class SecurityConfig {
             throws Exception {
         return authConfig.getAuthenticationManager();
     }
+    
 
+    
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -50,16 +52,18 @@ public class SecurityConfig {
             .cors().and()
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-
+                .requestMatchers("/api/admin/csv/**").hasAuthority("ROLE_ADMIN") // ✅ Fix CSV Upload Role
+                .requestMatchers("/api/transactions/**").hasAuthority("ROLE_ADMIN") // ✅ Secure transactions
+                .requestMatchers("/api/cashflow-plans/**").hasAuthority("ROLE_ADMIN") // ✅ Secure cashflow
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), 
-                             UsernamePasswordAuthenticationFilter.class);
+                            UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {

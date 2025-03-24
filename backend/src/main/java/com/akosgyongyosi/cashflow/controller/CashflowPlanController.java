@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/cashflow-plans")
@@ -27,7 +28,8 @@ public class CashflowPlanController {
         LocalDate currentYearStart = LocalDate.now().withDayOfYear(1);
         LocalDate currentYearEnd = LocalDate.now().withDayOfYear(currentYearStart.lengthOfYear());
 
-        CashflowPlan plan = planService.createPlanForInterval(planName, currentYearStart, currentYearEnd);
+        String groupKey = UUID.randomUUID().toString();
+        CashflowPlan plan = planService.createPlanForInterval(planName, currentYearStart, currentYearEnd, groupKey);
 
         return ResponseEntity.ok(plan);
     }
@@ -45,9 +47,18 @@ public class CashflowPlanController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        CashflowPlan plan = planService.createPlanForInterval(request.getPlanName(), start, end);
+        String groupKey = UUID.randomUUID().toString();
+        CashflowPlan plan = planService.createPlanForInterval(request.getPlanName(), start, end, groupKey);
         return ResponseEntity.ok(plan);
     }
+
+    @GetMapping
+    public ResponseEntity<List<CashflowPlan>> getAllPlans() {
+        System.out.println("✅ Reached getAllPlans()");
+        List<CashflowPlan> plans = planService.findAll();
+        return ResponseEntity.ok(plans);
+    }
+
 
 
     @GetMapping("/{planId}")
@@ -56,19 +67,16 @@ public class CashflowPlanController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    
+    @GetMapping("/group/{groupKey}/plans")
+    public ResponseEntity<List<CashflowPlan>> getPlansForGroup(@PathVariable String groupKey) {
+        List<CashflowPlan> plans = planService.findAllByGroupKey(groupKey);
+        if (plans.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(plans);
+    }
 
-    /**
-     * Accepts the plan name, start date, end date, and startBalance,
-     * then creates 3 scenario plans (Worst, Realistic, Best).
-     *
-     * Example request body JSON:
-     * {
-     *   "basePlanName": "MyAnnualPlan",
-     *   "startDate": "2025-01-01",
-     *   "endDate": "2025-12-31",
-     *   "startBalance": 10000
-     * }
-     */
     @PostMapping("/scenarios")
     public ResponseEntity<List<CashflowPlan>> createScenarioPlans(@RequestBody ScenarioPlanRequestDTO request) {
         LocalDate start = request.getStartDate();
@@ -91,3 +99,5 @@ public class CashflowPlanController {
         return ResponseEntity.ok(threePlans);
     }
 }
+
+

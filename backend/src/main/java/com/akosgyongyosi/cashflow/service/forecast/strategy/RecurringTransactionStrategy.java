@@ -33,8 +33,8 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
 
     private List<LocalDate> calculateRecurringDates(CashflowPlan plan, PlanLineItem item) {
         List<LocalDate> dates = new ArrayList<>();
-        LocalDate startDate = plan.getStartDate().plusWeeks(item.getStartWeek());
-        LocalDate endDate = plan.getStartDate().plusWeeks(item.getEndWeek());
+        LocalDate startDate = plan.getStartDate();
+        LocalDate endDate = plan.getStartDate();
 
         switch (item.getFrequency()) {
             case WEEKLY:

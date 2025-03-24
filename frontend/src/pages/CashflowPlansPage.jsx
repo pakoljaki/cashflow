@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 export default function CashflowPlansPage() {
   const navigate = useNavigate();
-
   const [plans, setPlans] = useState([]);
   const [basePlanName, setBasePlanName] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -16,27 +15,29 @@ export default function CashflowPlansPage() {
   }, []);
 
   const fetchAllPlans = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage('Not logged in');
-      return;
-    }
+    const token = localStorage.getItem("token");
 
-    try {
-      const resp = await fetch('/api/cashflow-plans', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(txt || 'Failed to fetch plans');
+    fetch("http://localhost:8080/api/cashflow-plans", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+    })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch plans');
       }
-      const data = await resp.json();
-      setPlans(data);
-    } catch (error) {
-      setMessage('Error: ' + error.message);
-    }
+      return response.json();
+    })
+    .then((data) => {
+      console.log("Fetched Plans:", data);
+      setPlans(data); // Make sure you're setting the plans state correctly
+    })
+    .catch((error) => {
+      console.error("Error fetching plans:", error);
+    });
+
   };
 
   const handleCreateScenarios = async () => {
@@ -55,7 +56,7 @@ export default function CashflowPlansPage() {
       basePlanName,
       startDate,
       endDate,
-      startBalance: startBalance || '0'
+      startBalance: startBalance || '0',
     };
 
     try {
@@ -63,19 +64,19 @@ export default function CashflowPlansPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(bodyData)
+        body: JSON.stringify(bodyData),
       });
+
       if (!resp.ok) {
         const txt = await resp.text();
         throw new Error(txt);
       }
-      const data = await resp.json(); // Should be an array of 3 created plans
+
+      const data = await resp.json(); // Array of 3 plans
       setMessage(`Created 3 scenario plans successfully!`);
-      // Refresh or append them to the list
       setPlans((old) => [...old, ...data]);
-      // Clear form
       setBasePlanName('');
       setStartDate('');
       setEndDate('');
@@ -90,50 +91,46 @@ export default function CashflowPlansPage() {
       <h2>Cashflow Plans</h2>
       <p>Create a new 3-scenario plan set or view existing plans.</p>
 
-      {/* Form to create 3-scenario group */}
       <div style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
         <h4>Create 3-Scenario Plan Group</h4>
         <div>
           <label>Base Plan Name: </label>
-          <input 
-            type="text" 
-            value={basePlanName} 
-            onChange={(e) => setBasePlanName(e.target.value)} 
+          <input
+            type="text"
+            value={basePlanName}
+            onChange={(e) => setBasePlanName(e.target.value)}
           />
         </div>
         <div>
           <label>Start Date: </label>
-          <input 
-            type="date" 
-            value={startDate} 
-            onChange={(e) => setStartDate(e.target.value)} 
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div>
           <label>End Date: </label>
-          <input 
-            type="date" 
-            value={endDate} 
-            onChange={(e) => setEndDate(e.target.value)} 
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
         <div>
           <label>Starting Balance: </label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             step="0.01"
             value={startBalance}
-            onChange={(e) => setStartBalance(e.target.value)} 
+            onChange={(e) => setStartBalance(e.target.value)}
           />
         </div>
-        <button onClick={handleCreateScenarios}>
-          Create 3 Plans (Worst/Realistic/Best)
-        </button>
+        <button onClick={handleCreateScenarios}>Create 3 Plans (Worst/Realistic/Best)</button>
       </div>
 
       {message && <div style={{ color: 'red' }}>{message}</div>}
 
-      {/* Existing Plans Table */}
       <h4>Existing Plans</h4>
       {plans.length === 0 ? (
         <p>No plans found.</p>
@@ -151,7 +148,7 @@ export default function CashflowPlansPage() {
             </tr>
           </thead>
           <tbody>
-            {plans.map(plan => (
+            {plans.map((plan) => (
               <tr key={plan.id}>
                 <td>{plan.id}</td>
                 <td>{plan.planName}</td>
@@ -160,10 +157,14 @@ export default function CashflowPlansPage() {
                 <td>{plan.endDate}</td>
                 <td>{plan.startBalance}</td>
                 <td>
-                  {/* Link to line items page */}
                   <button onClick={() => navigate(`/plans/${plan.id}`)}>
                     View Line Items
                   </button>
+                  {plan.groupKey && (
+                    <button onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}>
+                      View Scenario Group
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

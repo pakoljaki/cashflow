@@ -20,7 +20,7 @@ public class OneTimeTransactionStrategy implements ForecastStrategy {
         LocalDate txDate = item.getTransactionDate();  
 
         if (txDate == null) {
-            txDate = plan.getStartDate().plusWeeks(item.getStartWeek());
+            txDate = plan.getStartDate();
         }
 
         HistoricalTransaction newTx = new HistoricalTransaction();

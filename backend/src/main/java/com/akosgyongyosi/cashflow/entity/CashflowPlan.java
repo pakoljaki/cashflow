@@ -36,6 +36,10 @@ public class CashflowPlan {
     @Column(name = "scenario_type")
     private ScenarioType scenario;
 
+    // This identifies which group the plan belongs to
+    @Column(name = "group_key", nullable = false)
+    private String groupKey;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -45,6 +49,7 @@ public class CashflowPlan {
     private List<PlanLineItem> lineItems = new ArrayList<>();
 
     //SET
+    
 
     // store the transactions from last year as the "baseline"
     @OneToMany(mappedBy = "cashflowPlan", cascade = CascadeType.ALL, orphanRemoval = true)

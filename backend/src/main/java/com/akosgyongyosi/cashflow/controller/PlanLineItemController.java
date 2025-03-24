@@ -1,14 +1,18 @@
 package com.akosgyongyosi.cashflow.controller;
 
-import com.akosgyongyosi.cashflow.dto.PlanLineItemRequestDTO; // we'll create this DTO below
+import com.akosgyongyosi.cashflow.dto.PlanLineItemRequestDTO;
+import com.akosgyongyosi.cashflow.dto.PlanLineItemResponseDTO;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
+import com.akosgyongyosi.cashflow.entity.Frequency;
 import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.PlanLineItemRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cashflow-plans")
@@ -23,81 +27,72 @@ public class PlanLineItemController {
         this.lineItemRepository = lineItemRepository;
     }
 
-    // POST /api/cashflow-plans/{planId}/line-items
     @PostMapping("/{planId}/line-items")
-    public ResponseEntity<PlanLineItem> createLineItem(@PathVariable Long planId,
-                                                       @RequestBody PlanLineItemRequestDTO dto) {
-        CashflowPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("Plan not found with ID: " + planId));
+    public ResponseEntity<?> createLineItem(@PathVariable Long planId,
+                                            @RequestBody PlanLineItemRequestDTO dto) {
+        try {
+            CashflowPlan plan = planRepository.findById(planId)
+                    .orElseThrow(() -> new RuntimeException("Plan not found with ID: " + planId));
 
-        PlanLineItem lineItem = new PlanLineItem();
-        lineItem.setPlan(plan);
-        lineItem.setTitle(dto.getTitle());
-        lineItem.setType(dto.getType());
-        lineItem.setAmount(dto.getAmount());
-        lineItem.setFrequency(dto.getFrequency());
-        lineItem.setStartWeek(dto.getStartWeek());
-        lineItem.setEndWeek(dto.getEndWeek());
-        lineItem.setPercentChange(dto.getPercentChange());
+            PlanLineItem lineItem = new PlanLineItem();
+            lineItem.setPlan(plan);
+            lineItem.setTitle(dto.getTitle());
+            lineItem.setType(dto.getType());
+            lineItem.setAmount(dto.getAmount());
+            
+            // Validate frequency
+            if (dto.getFrequency() != null && !EnumSet.allOf(Frequency.class).contains(dto.getFrequency())) {
+                return ResponseEntity.badRequest().body("Invalid frequency: " + dto.getFrequency());
+            }
+            
+            lineItem.setFrequency(dto.getFrequency());
+            lineItem.setStartDate(dto.getStartDate());
+            lineItem.setEndDate(dto.getEndDate());
+            lineItem.setPercentChange(dto.getPercentChange());
+            lineItem.setTransactionDate(dto.getTransactionDate());
 
-        PlanLineItem saved = lineItemRepository.save(lineItem);
-        return ResponseEntity.ok(saved);
+            PlanLineItem saved = lineItemRepository.save(lineItem);
+            return ResponseEntity.ok(toResponseDTO(saved));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error creating line item: " + e.getMessage());
+        }
     }
 
-    // GET /api/cashflow-plans/{planId}/line-items
+
     @GetMapping("/{planId}/line-items")
-    public ResponseEntity<List<PlanLineItem>> getLineItemsForPlan(@PathVariable Long planId) {
-        List<PlanLineItem> items = lineItemRepository.findByPlanId(planId);
+    public ResponseEntity<List<PlanLineItemResponseDTO>> getLineItemsForPlan(@PathVariable Long planId) {
+        List<PlanLineItemResponseDTO> items = lineItemRepository.findByPlanId(planId).stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(items);
     }
 
-    // PUT /api/cashflow-plans/{planId}/line-items/{itemId}
-    @PutMapping("/{planId}/line-items/{itemId}")
-    public ResponseEntity<PlanLineItem> updateLineItem(@PathVariable Long planId,
-                                                       @PathVariable Long itemId,
-                                                       @RequestBody PlanLineItemRequestDTO dto) {
-        CashflowPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("Plan not found with ID: " + planId));
-
-        PlanLineItem existingItem = lineItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("LineItem not found with ID: " + itemId));
-
-        if (!existingItem.getPlan().getId().equals(plan.getId())) {
-            return ResponseEntity.status(403).build(); // or an exception could be thrown
-        }
-
-        existingItem.setTitle(dto.getTitle());
-        existingItem.setType(dto.getType());
-        existingItem.setAmount(dto.getAmount());
-        existingItem.setFrequency(dto.getFrequency());
-        existingItem.setStartWeek(dto.getStartWeek());
-        existingItem.setEndWeek(dto.getEndWeek());
-        existingItem.setPercentChange(dto.getPercentChange());
-    
-        PlanLineItem updated = lineItemRepository.save(existingItem);
-
-        return ResponseEntity.ok(updated);
-    }
-
-    // DELETE /api/cashflow-plans/{planId}/line-items/{itemId}
     @DeleteMapping("/{planId}/line-items/{itemId}")
-    public ResponseEntity<Void> deleteLineItem(@PathVariable Long planId,
-                                            @PathVariable Long itemId) {
-
-        CashflowPlan plan = planRepository.findById(planId) // find the plan
-                .orElseThrow(() -> new RuntimeException("Plan not found with ID: " + planId));
-
-        PlanLineItem item = lineItemRepository.findById(itemId) // find the lineItem
+    public ResponseEntity<Void> deleteLineItem(@PathVariable Long planId, @PathVariable Long itemId) {
+        PlanLineItem item = lineItemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("LineItem not found with ID: " + itemId));
 
-        if (!item.getPlan().getId().equals(plan.getId())) {
-            return ResponseEntity.status(403).build(); // or throw an exception
+        if (!item.getPlan().getId().equals(planId)) {
+            return ResponseEntity.status(403).build();
         }
 
         lineItemRepository.delete(item);
-
-        return ResponseEntity.noContent().build(); //return 204 or 200
+        return ResponseEntity.noContent().build();
     }
 
-
+    private PlanLineItemResponseDTO toResponseDTO(PlanLineItem item) {
+        PlanLineItemResponseDTO dto = new PlanLineItemResponseDTO();
+        dto.setId(item.getId());
+        dto.setTitle(item.getTitle());
+        dto.setType(item.getType());
+        dto.setAmount(item.getAmount());
+        dto.setFrequency(item.getFrequency());
+        dto.setStartDate(item.getStartDate());
+        dto.setEndDate(item.getEndDate());
+        dto.setTransactionDate(item.getTransactionDate());
+        dto.setPercentChange(item.getPercentChange());
+        dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+        return dto;
+    }
 }

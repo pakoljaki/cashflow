@@ -9,6 +9,8 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import com.akosgyongyosi.cashflow.entity.Role;
+
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
@@ -38,13 +40,16 @@ public class JwtUtil {
     }
     
     
-    public String generateToken(String email, Set<com.akosgyongyosi.cashflow.entity.Role> roles) {
+    public String generateToken(String email, Set<Role> roles) {
         List<String> roleNames = roles.stream()
-            .map(Enum::name)
+            .map(Enum::name) // e.g. Role.ADMIN => "ADMIN"
             .collect(Collectors.toList());
-
+    
         return buildToken(email, roleNames);
     }
+    
+    
+    
 
     private String buildToken(String subject, List<String> roleNames) {
         long now = System.currentTimeMillis();

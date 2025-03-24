@@ -30,7 +30,6 @@ public class PlanLineItem {
 
     @Enumerated(EnumType.STRING)
     private LineItemType type;
-    // e.g. RECURRING, ONE_TIME, CATEGORY_ADJUSTMENT
 
     private String title;          // e.g. "New Hire Salary", "Sell Asset"
     private BigDecimal amount;     // can be negative or positive
@@ -41,13 +40,9 @@ public class PlanLineItem {
     @Enumerated(EnumType.STRING)
     private Frequency frequency;  
 
-    private int startWeek;  // week-based calculations
-    private int endWeek;    // week-based calculations
+    private LocalDate startDate;
+    private LocalDate endDate;
 
-    //TODO: refactor planLineItem to use startDay and endDay
-
-    // For category-level adjustments:
-    // E.g. "Marketing", "Salaries", "Rent"
     @ManyToOne
     @JoinColumn(name = "category_id")
     private TransactionCategory category;  

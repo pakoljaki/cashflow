@@ -39,27 +39,21 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
 
         if (token != null) {
             try {
-                // 1) Parse once
                 Claims claims = jwtUtil.parseToken(token);
 
-                // 2) Check expiry
                 if (!jwtUtil.isTokenExpired(claims)) {
                     String email = claims.getSubject();
 
-                    // roles stored as ["ADMIN","VIEWER"]
                     @SuppressWarnings("unchecked")
                     List<String> roleNames = claims.get("roles", List.class);
 
-                    // Convert each string role name into a GrantedAuthority
+                    // Remove the extra "ROLE_" prefix mapping.
                     List<GrantedAuthority> authorities = roleNames.stream()
-                        // e.g. "ADMIN" => new SimpleGrantedAuthority("ROLE_ADMIN")
-                        .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName))
+                        .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
-                    // Build the Spring Security UserDetails
                     User userDetails = new User(email, "", authorities);
 
-                    // Create authentication token
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
 
@@ -67,7 +61,6 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
                 }
 
             } catch (JwtException e) {
-                // Malformed or invalid token
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("Invalid or expired token");
                 return;
@@ -76,6 +69,7 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
 
         chain.doFilter(request, response);
     }
+
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
