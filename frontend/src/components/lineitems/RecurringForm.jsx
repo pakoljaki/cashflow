@@ -1,21 +1,21 @@
-// src/components/lineitems/RecurringForm.jsx
 import React, { useState } from 'react';
 
+//TODO: ADD CATEGORY HANDLING similar to one-time
+
 export default function RecurringForm({ plans, onSuccess }) {
-  const [worstAmount, setWorstAmount] = useState('');
-  const [realAmount, setRealAmount] = useState('');
-  const [bestAmount, setBestAmount] = useState('');
+  const scenarios = ["WORST", "REALISTIC", "BEST"];
+  const [scenarioData, setScenarioData] = useState(() => {
+    const init = {};
+    scenarios.forEach(s => {
+      init[s] = { active: false, amount: '' };
+    });
+    return init;
+  });
 
-  const [worstStart, setWorstStart] = useState('');
-  const [realStart, setRealStart] = useState('');
-  const [bestStart, setBestStart] = useState('');
-
-  const [worstEnd, setWorstEnd] = useState('');
-  const [realEnd, setRealEnd] = useState('');
-  const [bestEnd, setBestEnd] = useState('');
-
-  const [frequency, setFrequency] = useState('MONTHLY');
   const [title, setTitle] = useState('');
+  const [frequency, setFrequency] = useState('MONTHLY');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [message, setMessage] = useState('');
 
   async function handleSubmit() {
@@ -24,68 +24,105 @@ export default function RecurringForm({ plans, onSuccess }) {
       setMessage('Not logged in');
       return;
     }
+    if (!title.trim()) {
+      alert('Title is required');
+      return;
+    }
+
+    let createdCount = 0;
+    let sharedAssumptionId = null;
 
     for (let plan of plans) {
-      let amountVal = '';
-      let startVal = '';
-      let endVal = '';
-      if (plan.scenario === 'WORST') {
-        amountVal = worstAmount;
-        startVal = worstStart;
-        endVal = worstEnd;
-      } else if (plan.scenario === 'REALISTIC') {
-        amountVal = realAmount;
-        startVal = realStart;
-        endVal = realEnd;
-      } else {
-        amountVal = bestAmount;
-        startVal = bestStart;
-        endVal = bestEnd;
-      }
+      const sc = plan.scenario;
+      if (scenarioData[sc].active) {
+        const amountVal = scenarioData[sc].amount || '0';
 
-      const body = {
-        title,
-        type: 'RECURRING',
-        amount: amountVal,
-        frequency,
-        // If your backend expects localDates, you might rename them or store them in transactionDate, etc.
-        transactionDate: null,
-        // Or if you store them in startDate/endDate, adapt to your PlanLineItem entity
-        startDate: startVal || null,
-        endDate: endVal || null
-      };
+        const body = {
+          title: title.trim(),
+          type: 'RECURRING',
+          amount: parseFloat(amountVal),
+          frequency,
+          transactionDate: null,
+          startDate: startDate || null,
+          endDate: endDate || null
+        };
 
-      const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-      if (!resp.ok) {
-        setMessage(`Failed for ${plan.scenario}: ${await resp.text()}`);
-        return;
+        if (sharedAssumptionId) {
+          body.assumptionId = sharedAssumptionId;
+        }
+
+        try {
+          const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+          });
+          if (!resp.ok) {
+            const txt = await resp.text();
+            throw new Error(`Failed for ${sc}: ` + txt);
+          }
+
+          const savedItem = await resp.json();
+          if (!sharedAssumptionId) {
+            sharedAssumptionId = savedItem.assumptionId;
+          }
+
+          createdCount++;
+        } catch (err) {
+          setMessage(err.message);
+          return;
+        }
       }
     }
 
-    setMessage('Recurring assumption added for all 3 scenarios!');
+    setMessage(`Recurring assumption added for ${createdCount} scenario(s)!`);
     if (onSuccess) onSuccess();
+  }
+
+  function toggleScenarioActive(s) {
+    setScenarioData(prev => ({
+      ...prev,
+      [s]: {
+        ...prev[s],
+        active: !prev[s].active,
+      },
+    }));
+  }
+
+  function handleAmountChange(s, val) {
+    setScenarioData(prev => ({
+      ...prev,
+      [s]: {
+        ...prev[s],
+        amount: val,
+      },
+    }));
   }
 
   return (
     <div style={{ marginTop: '1rem' }}>
-      <h5>Recurring Transaction</h5>
+      <h5>Recurring Transaction (Multi-Scenario)</h5>
       {message && <p style={{ color: 'red' }}>{message}</p>}
 
-      <div>
+      <div style={{ marginBottom: '0.5rem' }}>
         <label>Title: </label>
-        <input value={title} onChange={e => setTitle(e.target.value)} />
+        <input
+          style={{ marginLeft: '0.5rem' }}
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+        />
       </div>
 
-      <div>
-        <label>Frequency:</label>
-        <select value={frequency} onChange={e => setFrequency(e.target.value)}>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label>Frequency: </label>
+        <select
+          style={{ marginLeft: '0.5rem' }}
+          value={frequency}
+          onChange={e => setFrequency(e.target.value)}
+        >
           <option value="WEEKLY">WEEKLY</option>
           <option value="BI_WEEKLY">BI_WEEKLY</option>
           <option value="MONTHLY">MONTHLY</option>
@@ -95,47 +132,57 @@ export default function RecurringForm({ plans, onSuccess }) {
         </select>
       </div>
 
-      <h6>Worst Case</h6>
-      <div>
-        <label>Amount: </label>
-        <input type="number" value={worstAmount} onChange={e => setWorstAmount(e.target.value)} />
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label>Start Date (all scenarios): </label>
+        <input
+          type="date"
+          style={{ marginLeft: '0.5rem' }}
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
+        />
       </div>
-      <div>
-        <label>Start Date: </label>
-        <input type="date" value={worstStart} onChange={e => setWorstStart(e.target.value)} />
-      </div>
-      <div>
-        <label>End Date: </label>
-        <input type="date" value={worstEnd} onChange={e => setWorstEnd(e.target.value)} />
-      </div>
-
-      <h6>Realistic</h6>
-      <div>
-        <label>Amount: </label>
-        <input type="number" value={realAmount} onChange={e => setRealAmount(e.target.value)} />
-      </div>
-      <div>
-        <label>Start Date: </label>
-        <input type="date" value={realStart} onChange={e => setRealStart(e.target.value)} />
-      </div>
-      <div>
-        <label>End Date: </label>
-        <input type="date" value={realEnd} onChange={e => setRealEnd(e.target.value)} />
+      <div style={{ marginBottom: '1rem' }}>
+        <label>End Date (all scenarios): </label>
+        <input
+          type="date"
+          style={{ marginLeft: '0.5rem' }}
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+        />
       </div>
 
-      <h6>Best Case</h6>
-      <div>
-        <label>Amount: </label>
-        <input type="number" value={bestAmount} onChange={e => setBestAmount(e.target.value)} />
-      </div>
-      <div>
-        <label>Start Date: </label>
-        <input type="date" value={bestStart} onChange={e => setBestStart(e.target.value)} />
-      </div>
-      <div>
-        <label>End Date: </label>
-        <input type="date" value={bestEnd} onChange={e => setBestEnd(e.target.value)} />
-      </div>
+      <table border="1" cellPadding="5" style={{ marginBottom: '1rem' }}>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Active?</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {scenarios.map(s => (
+            <tr key={s}>
+              <td>{s}</td>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={scenarioData[s].active}
+                  onChange={() => toggleScenarioActive(s)}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  step="0.01"
+                  disabled={!scenarioData[s].active}
+                  value={scenarioData[s].amount}
+                  onChange={e => handleAmountChange(s, e.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <button onClick={handleSubmit}>Save</button>
     </div>

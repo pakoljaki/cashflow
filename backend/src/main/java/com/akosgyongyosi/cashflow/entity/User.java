@@ -23,9 +23,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @ElementCollection(fetch = FetchType.EAGER)  // Ensure roles are loaded immediately
+    @ElementCollection(fetch = FetchType.EAGER)  
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
-    private Set<Role> roles = new HashSet<>(); // Default empty set to prevent null issues
+    private Set<Role> roles = new HashSet<>(); 
 }

@@ -54,7 +54,6 @@ public class CashflowPlanController {
 
     @GetMapping
     public ResponseEntity<List<CashflowPlan>> getAllPlans() {
-        System.out.println("✅ Reached getAllPlans()");
         List<CashflowPlan> plans = planService.findAll();
         return ResponseEntity.ok(plans);
     }

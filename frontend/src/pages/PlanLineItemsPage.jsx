@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 export default function PlanLineItemsPage() {
-  const { planId } = useParams(); // from route: /plans/:planId
+  const { planId } = useParams();
   const [lineItems, setLineItems] = useState([]);
   const [message, setMessage] = useState('');
   
-  // Fields for creating/updating a new line item
   const [title, setTitle] = useState('');
   const [type, setType] = useState('ONE_TIME'); 
   const [amount, setAmount] = useState('');
@@ -17,7 +16,6 @@ export default function PlanLineItemsPage() {
   const [transactionDate, setTransactionDate] = useState('');
   const [categoryId, setCategoryId] = useState('');
 
-  // For categories (if user is picking from a dropdown)
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
@@ -60,7 +58,6 @@ export default function PlanLineItemsPage() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // Build request body from your local state
     const requestBody = {
       title,
       type,
@@ -90,7 +87,6 @@ export default function PlanLineItemsPage() {
       const newItem = await resp.json();
       setLineItems((old) => [...old, newItem]);
       setMessage('Line item added successfully!');
-      // Clear form
       setTitle('');
       setAmount('');
       setStartWeek('');
@@ -105,7 +101,6 @@ export default function PlanLineItemsPage() {
     }
   };
 
-  // Example of how you'd delete an item
   const handleDeleteItem = async (itemId) => {
     const token = localStorage.getItem('token');
     if (!token) return;

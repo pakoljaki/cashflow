@@ -9,24 +9,19 @@ import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")  // Enables Spring's dependency injection
+@Mapper(componentModel = "spring") 
 public interface CashflowPlanMapper {
 
     CashflowPlanMapper INSTANCE = Mappers.getMapper(CashflowPlanMapper.class);
 
-    // convert cashflowplan entity to DTO
     CashflowPlanDTO toDTO(CashflowPlan plan);
 
-    // convert DTO to entity
     CashflowPlan toEntity(CashflowPlanDTO dto);
 
-    // convert line item entity to DTO
     PlanLineItemDTO toDTO(PlanLineItem item);
 
-    // Convert DTO to entity
     PlanLineItem toEntity(PlanLineItemDTO dto);
 
-    // list conversions (MapStruct handles automatically)
     List<PlanLineItemDTO> toDTO(List<PlanLineItem> items);
     List<PlanLineItem> toEntity(List<PlanLineItemDTO> items);
 }

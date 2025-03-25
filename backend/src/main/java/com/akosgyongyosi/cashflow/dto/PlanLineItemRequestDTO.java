@@ -23,4 +23,5 @@ public class PlanLineItemRequestDTO {
     private Double percentChange;
     private LocalDate transactionDate;
     private Long categoryId;
+    private Long assumptionId;
 }

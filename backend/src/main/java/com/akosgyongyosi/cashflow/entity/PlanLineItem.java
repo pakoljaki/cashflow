@@ -22,7 +22,8 @@ public class PlanLineItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Link to parent plan
+    private Long assumptionId;
+
     @ManyToOne
     @JoinColumn(name = "plan_id", nullable = false)
     @JsonBackReference
@@ -31,12 +32,10 @@ public class PlanLineItem {
     @Enumerated(EnumType.STRING)
     private LineItemType type;
 
-    private String title;          // e.g. "New Hire Salary", "Sell Asset"
-    private BigDecimal amount;     // can be negative or positive
-
+    private String title;          
+    private BigDecimal amount;
     private LocalDate transactionDate;  
-    // for recurring items:
-    // e.g. ONE_TIME, DAILY, WEEKLY, MONTHLY
+
     @Enumerated(EnumType.STRING)
     private Frequency frequency;  
 

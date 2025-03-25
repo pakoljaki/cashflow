@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 export default function CashflowPlansPage() {
   const navigate = useNavigate();
-  const [plans, setPlans] = useState([]);
+  const [allPlans, setAllPlans] = useState([]);
+  const [groupedPlans, setGroupedPlans] = useState([]); 
   const [basePlanName, setBasePlanName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -14,33 +15,52 @@ export default function CashflowPlansPage() {
     fetchAllPlans();
   }, []);
 
-  const fetchAllPlans = async () => {
+  async function fetchAllPlans() {
     const token = localStorage.getItem("token");
-
-    fetch("http://localhost:8080/api/cashflow-plans", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-    })
-    .then((response) => {
-      if (!response.ok) {
+    if (!token) {
+      setMessage('Not logged in');
+      return;
+    }
+    try {
+      const resp = await fetch("http://localhost:8080/api/cashflow-plans", {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+      });
+      if (!resp.ok) {
         throw new Error('Failed to fetch plans');
       }
-      return response.json();
-    })
-    .then((data) => {
-      console.log("Fetched Plans:", data);
-      setPlans(data); // Make sure you're setting the plans state correctly
-    })
-    .catch((error) => {
+      const data = await resp.json();
+      setAllPlans(data);
+      groupByScenario(data);
+    } catch (error) {
       console.error("Error fetching plans:", error);
-    });
+      setMessage(error.message);
+    }
+  }
 
-  };
+    function groupByScenario(plansArray) {
+    const map = new Map();
+    for (let plan of plansArray) {
+      if (!map.has(plan.groupKey)) {
+        map.set(plan.groupKey, []);
+      }
+      map.get(plan.groupKey).push(plan);
+    }
 
-  const handleCreateScenarios = async () => {
+       const result = [];
+    for (let [groupKey, plansInGroup] of map.entries()) {
+      let displayedPlan = plansInGroup.find(p => p.scenario === 'REALISTIC');
+      if (!displayedPlan) {
+        displayedPlan = plansInGroup[0]; 
+      }
+      result.push(displayedPlan);
+    }
+    setGroupedPlans(result);
+  }
+
+  async function handleCreateScenarios() {
     if (!basePlanName || !startDate || !endDate) {
       alert('Please fill in base plan name, start date, and end date');
       return;
@@ -68,15 +88,18 @@ export default function CashflowPlansPage() {
         },
         body: JSON.stringify(bodyData),
       });
-
       if (!resp.ok) {
         const txt = await resp.text();
         throw new Error(txt);
       }
 
-      const data = await resp.json(); // Array of 3 plans
-      setMessage(`Created 3 scenario plans successfully!`);
-      setPlans((old) => [...old, ...data]);
+      const newGroupOfPlans = await resp.json();
+      setMessage('Created 3 scenario plans successfully!');
+
+      const updated = [...allPlans, ...newGroupOfPlans];
+      setAllPlans(updated);
+      groupByScenario(updated);
+
       setBasePlanName('');
       setStartDate('');
       setEndDate('');
@@ -84,14 +107,57 @@ export default function CashflowPlansPage() {
     } catch (error) {
       setMessage('Error creating scenario plans: ' + error.message);
     }
-  };
+  }
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <h2>Cashflow Plans</h2>
-      <p>Create a new 3-scenario plan set or view existing plans.</p>
+    <div style={{ display: 'flex', padding: '1rem' }}>
+      {/* LEFT SIDE: Table of scenario groups */}
+      <div style={{ flex: 2, marginRight: '1rem' }}>
+        <h2>Cashflow Plans (Grouped by Scenario)</h2>
+        {message && <div style={{ color: 'red' }}>{message}</div>}
 
-      <div style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
+        {groupedPlans.length === 0 ? (
+          <p>No plans found.</p>
+        ) : (
+          <table border="1" cellPadding="8" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Plan Name</th>
+                {/* We intentionally skip showing scenario */}
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Start Balance</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupedPlans.map(plan => (
+                <tr key={plan.id}>
+                  <td>{plan.id}</td>
+                  <td>{plan.planName}</td>
+                  <td>{plan.startDate}</td>
+                  <td>{plan.endDate}</td>
+                  <td>{plan.startBalance}</td>
+                  <td>
+                    {/* 
+                       If you still want to see line items for that 
+                       specific scenario plan, you can keep a button: 
+                       <button onClick={() => navigate(`/plans/${plan.id}`)}>View Items</button>
+                    */}
+                    <button onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}>
+                      Manage Group
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* RIGHT SIDE: Create new 3-scenario plan group */}
+      <div style={{ flex: 1, border: '1px solid #ccc', padding: '1rem' }}>
         <h4>Create 3-Scenario Plan Group</h4>
         <div>
           <label>Base Plan Name: </label>
@@ -126,51 +192,8 @@ export default function CashflowPlansPage() {
             onChange={(e) => setStartBalance(e.target.value)}
           />
         </div>
-        <button onClick={handleCreateScenarios}>Create 3 Plans (Worst/Realistic/Best)</button>
+        <button onClick={handleCreateScenarios}>Create Plans (Worst/Realistic/Best)</button>
       </div>
-
-      {message && <div style={{ color: 'red' }}>{message}</div>}
-
-      <h4>Existing Plans</h4>
-      {plans.length === 0 ? (
-        <p>No plans found.</p>
-      ) : (
-        <table border="1" cellPadding="8">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Plan Name</th>
-              <th>Scenario</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Start Balance</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plans.map((plan) => (
-              <tr key={plan.id}>
-                <td>{plan.id}</td>
-                <td>{plan.planName}</td>
-                <td>{plan.scenario || '—'}</td>
-                <td>{plan.startDate}</td>
-                <td>{plan.endDate}</td>
-                <td>{plan.startBalance}</td>
-                <td>
-                  <button onClick={() => navigate(`/plans/${plan.id}`)}>
-                    View Line Items
-                  </button>
-                  {plan.groupKey && (
-                    <button onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}>
-                      View Scenario Group
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
     </div>
   );
 }

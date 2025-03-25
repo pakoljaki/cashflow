@@ -21,7 +21,7 @@ const Register = () => {
 
     if (response.ok) {
       alert("Registration successful! Please log in.");
-      navigate("/login");  // Redirect to login after registration
+      navigate("/login");
     } else {
       alert("Registration failed");
     }

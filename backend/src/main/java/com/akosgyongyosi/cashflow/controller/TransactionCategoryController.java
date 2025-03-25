@@ -24,7 +24,6 @@ public class TransactionCategoryController {
 
     @PostMapping
     public ResponseEntity<?> createCategory(@RequestBody CategoryRequest request) {
-        // Optionally check if name already exists, etc.
         if (request.getName() == null || request.getDirection() == null) {
             return ResponseEntity.badRequest().body("Category name/direction missing");
         }
@@ -36,7 +35,7 @@ public class TransactionCategoryController {
 
         TransactionCategory saved = categoryRepository.save(newCat);
 
-        return ResponseEntity.ok(saved); // returns the newly created category
+        return ResponseEntity.ok(saved); 
     }
 
     public static class CategoryRequest {

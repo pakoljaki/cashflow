@@ -8,10 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,12 +27,9 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
-    private final CustomUserDetailsService userDetailsService; // for login
 
-    public SecurityConfig(JwtUtil jwtUtil, 
-                          CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
-        this.userDetailsService = userDetailsService;
     }
 
     @Bean
@@ -42,28 +37,24 @@ public class SecurityConfig {
             throws Exception {
         return authConfig.getAuthenticationManager();
     }
-    
 
-    
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf().disable()
-            .cors().and()
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/csv/**").hasAuthority("ROLE_ADMIN") // ✅ Fix CSV Upload Role
-                .requestMatchers("/api/transactions/**").hasAuthority("ROLE_ADMIN") // ✅ Secure transactions
-                .requestMatchers("/api/cashflow-plans/**").hasAuthority("ROLE_ADMIN") // ✅ Secure cashflow
-                .anyRequest().authenticated()
-            )
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> {})
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers("/api/auth/**").permitAll();
+                auth.requestMatchers("/api/admin/csv/**").hasAuthority("ROLE_ADMIN");
+                auth.requestMatchers("/api/transactions/**").hasAuthority("ROLE_ADMIN");
+                auth.requestMatchers("/api/cashflow-plans/**").hasAuthority("ROLE_ADMIN");
+                auth.anyRequest().authenticated();
+            })
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), 
-                            UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {

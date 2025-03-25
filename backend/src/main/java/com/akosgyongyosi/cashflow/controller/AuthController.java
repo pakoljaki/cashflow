@@ -59,10 +59,9 @@ public class AuthController {
         String hashedPassword = securityConfig.passwordEncoder().encode(rawPassword);
         user.setPassword(hashedPassword);
 
-        // Build a new set of roles from the request
         Set<Role> roleSet = new HashSet<>();
         if (request.getRoles() == null || request.getRoles().isEmpty()) {
-            roleSet.add(Role.VIEWER);  // default role
+            roleSet.add(Role.VIEWER);
         } else {
             for (String roleStr : request.getRoles()) {
                 try {
@@ -77,10 +76,7 @@ public class AuthController {
         user.setRoles(roleSet);
 
         userRepository.save(user);
-
-        // Generate a JWT with all the user roles
         String token = jwtUtil.generateToken(user.getEmail(), user.getRoles());
-
         return ResponseEntity.ok(new RegisterResponseDTO("User registered successfully.", token));
     }
 

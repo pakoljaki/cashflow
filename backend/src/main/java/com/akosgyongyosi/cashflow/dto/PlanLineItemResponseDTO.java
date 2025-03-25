@@ -15,6 +15,7 @@ import java.time.LocalDate;
 @Data
 public class PlanLineItemResponseDTO {
     private Long id;
+    private Long assumptionId;
     private String title;
     private LineItemType type;
     private BigDecimal amount;

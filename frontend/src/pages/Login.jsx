@@ -25,7 +25,7 @@ const Login = () => {
         localStorage.setItem("token", data.token);
 
         if (data.roles && data.roles.length > 0) {
-            localStorage.setItem("userRole", data.roles[0]);  // Store role correctly
+            localStorage.setItem("userRole", data.roles[0]);  
             console.log("Login successful. Role:", data.roles[0]);
         } else {
             console.error("Role is missing in response!");

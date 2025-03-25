@@ -5,10 +5,8 @@ import io.jsonwebtoken.JwtException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import jakarta.servlet.FilterChain;
@@ -30,10 +28,11 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain chain)
-            throws IOException, ServletException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
 
         String token = getJwtFromRequest(request);
 
@@ -47,7 +46,6 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
                     @SuppressWarnings("unchecked")
                     List<String> roleNames = claims.get("roles", List.class);
 
-                    // Remove the extra "ROLE_" prefix mapping.
                     List<GrantedAuthority> authorities = roleNames.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
@@ -55,7 +53,7 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
                     User userDetails = new User(email, "", authorities);
 
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+                        new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
@@ -69,7 +67,6 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
 
         chain.doFilter(request, response);
     }
-
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");

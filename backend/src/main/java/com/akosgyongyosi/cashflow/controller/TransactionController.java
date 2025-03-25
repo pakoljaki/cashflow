@@ -98,13 +98,11 @@ public class TransactionController {
         }
         TransactionCategory category = catOpt.get();
 
-        // Find transactions
         List<Transaction> txList = transactionRepository.findAllById(request.getTransactionIds());
         if (txList.isEmpty()) {
             return ResponseEntity.badRequest().body("No matching transactions found for given IDs.");
         }
 
-        // Ensure all transactions have the same direction
         TransactionDirection direction = txList.get(0).getTransactionDirection();
         for (Transaction tx : txList) {
             if (!tx.getTransactionDirection().equals(direction)) {
@@ -112,7 +110,6 @@ public class TransactionController {
             }
         }
 
-        // Assign the category
         txList.forEach(tx -> tx.setCategory(category));
         transactionRepository.saveAll(txList);
 
@@ -129,7 +126,6 @@ public class TransactionController {
         return ResponseEntity.ok(savedCategory);
     }
 
-    // DTO for updating a transactions category
     public static class CategoryUpdateRequest {
         private String categoryName;
         private boolean createNewCategory;
@@ -144,7 +140,6 @@ public class TransactionController {
     }
 
     
-    // DTO for bulk updating transaction categories.
     public static class BulkCategoryRequest {
         private List<Long> transactionIds;
         private Long categoryId;

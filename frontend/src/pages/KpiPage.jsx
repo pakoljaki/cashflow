@@ -5,9 +5,7 @@ export default function KpiPage() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    // Example: fetch from a future endpoint like /api/kpis 
-    // We'll just simulate an empty call for now
-    // fetchKpis();
+    
   }, []);
 
   /* 
