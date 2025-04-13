@@ -1,5 +1,5 @@
 import React from 'react';
-import './MyButton.css'; 
+import '../styles/myButton.css';
 
 const MyButton = ({ variant = 'primary', type = 'button', onClick, children }) => {
   const btnClass = `my-button ${variant}`;

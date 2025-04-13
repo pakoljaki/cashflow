@@ -22,7 +22,9 @@ public class TransactionCategory {
     private String name; // example: "Salary", "Office Rent", "Marketing"
 
     // Boolean inflationFollowing;
-
+    @ManyToOne
+    @JoinColumn(name = "accounting_category_id")
+    private AccountingCategory accountingCategory;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "direction") 

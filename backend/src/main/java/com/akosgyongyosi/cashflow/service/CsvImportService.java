@@ -84,7 +84,6 @@ public class CsvImportService {
         String fileName = filePath.getFileName().toString();
         System.out.println("Processing file: " + fileName);
 
-        // Debug: Print first 5 lines
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             System.out.println("First 5 lines of file:");
             reader.lines().limit(5).forEach(System.out::println);
@@ -92,10 +91,8 @@ public class CsvImportService {
             System.err.println("Error reading raw file: " + fileName);
         }
 
-        // Determine currency from filename
         CurrencyType fileCurrency = parseCurrencyFromFilename(fileName);
 
-        // Parse CSV
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8);
              CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withDelimiter(';'))) {
 
@@ -129,7 +126,7 @@ public class CsvImportService {
             // 3: partnerName
             // 4: partnerAccountNumber
             // 5: amount
-            // 6: T or J
+            // 6: T or J Terhelés or Jóváírás
             // 7: transactionCode
             // 8: memo (optional)
 
@@ -140,21 +137,17 @@ public class CsvImportService {
             String partnerAcct   = record.get(4);
             BigDecimal amount    = new BigDecimal(record.get(5).replace(",", "."));
 
-            // T => NEGATIVE, J => POSITIVE
             TransactionDirection direction =
                 "T".equals(record.get(6)) ? TransactionDirection.NEGATIVE : TransactionDirection.POSITIVE;
 
             String transactionCode = record.get(7);
             String memo = (record.size() > 8) ? record.get(8) : "";
-
-            // find or create bank account
             BankAccount ourAcct = findOrCreateBankAccount(ourAccountNumber, "Our Company", fileCurrency, null);
             if (ourAcct == null) {
                 System.err.println("Skipping transaction because our account is null/empty.");
                 return null;
             }
 
-            // partner account (optional)
             BankAccount partnerAccount = null;
             if (partnerAcct != null && !partnerAcct.isBlank()) {
                 partnerAccount = findOrCreateBankAccount(partnerAcct, 
@@ -164,7 +157,6 @@ public class CsvImportService {
                 );
             }
 
-            // build transaction
             Transaction tx = new Transaction();
             tx.setAccount(ourAcct);
             tx.setBookingDate(bookingDate);
@@ -178,13 +170,10 @@ public class CsvImportService {
             tx.setMemo(memo);
             tx.setTransactionMethod(TransactionMethod.TRANSFER);
 
-            // try find category by memo
             Optional<TransactionCategory> catOpt = categoryRepository.findByName(memo);
             if (catOpt.isPresent()) {
-                // if found, use it
                 tx.setCategory(catOpt.get());
             } else {
-                // otherwise => assign an unassigned category
                 tx.setCategory(assignUnassignedCategory(direction));
             }
 
@@ -200,16 +189,13 @@ public class CsvImportService {
   
     @Transactional 
     private TransactionCategory assignUnassignedCategory(TransactionDirection direction) {
-        // We'll create unique name for each direction
         String unassignedName = "Unassigned(" + direction.name() + ")";
 
-        // Try find existing unassigned cat
         Optional<TransactionCategory> unassignedOpt = categoryRepository.findByName(unassignedName);
         if (unassignedOpt.isPresent()) {
             return unassignedOpt.get();
         }
 
-        // Otherwise create it
         TransactionCategory newCat = new TransactionCategory();
         newCat.setName(unassignedName);
         newCat.setDirection(direction);
@@ -242,7 +228,7 @@ public class CsvImportService {
         if (lower.contains("eur")) {
             return CurrencyType.EUR;
         } else {
-            return CurrencyType.HUF;  // fallback
+            return CurrencyType.HUF; 
         }
     }
 
@@ -287,9 +273,8 @@ public class CsvImportService {
                     tx.setTransactionCode(transactionCode);
                     tx.setMemo(memo);
                     tx.setTransactionMethod(TransactionMethod.TRANSFER);
-                    tx.setCurrency(ourAcct.getCurrency()); // from bank account
+                    tx.setCurrency(ourAcct.getCurrency());
 
-                    // find category by name
                     Optional<TransactionCategory> catOpt = categoryRepository.findByName(memo);
                     if (catOpt.isPresent()) {
                         tx.setCategory(catOpt.get());

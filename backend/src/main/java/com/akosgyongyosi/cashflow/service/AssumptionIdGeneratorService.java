@@ -18,9 +18,7 @@ public class AssumptionIdGeneratorService {
     public Long getNextAssumptionId() {
         AssumptionIdSequence seq = seqRepo.findById("ASSUMPTION_ID").orElse(null);
 
-        // We need this untill we are in develpoment, as tables get dropped
         if (seq == null) {
-            // Automatically insert the sequence row if it's missing
             seq = new AssumptionIdSequence();
             seq.setSeqName("ASSUMPTION_ID");
             seq.setNextVal(1L);
