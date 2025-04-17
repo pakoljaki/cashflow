@@ -37,7 +37,7 @@ public class HistoricalTransaction {
     
     @ManyToOne
     @JoinColumn(name = "category_id")
-    @JsonIgnore // prevents infinite recursion
+    @JsonIgnore 
     private TransactionCategory category;
 
 
@@ -45,7 +45,7 @@ public class HistoricalTransaction {
 
     @ManyToOne
     @JsonBackReference
-    private CashflowPlan cashflowPlan; // link to forecast plan
+    private CashflowPlan cashflowPlan; 
 
     @JsonProperty("category")
     public String getCategoryName() { 

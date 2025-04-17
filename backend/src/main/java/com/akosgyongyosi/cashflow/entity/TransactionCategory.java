@@ -19,9 +19,8 @@ public class TransactionCategory {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String name; // example: "Salary", "Office Rent", "Marketing"
+    private String name;
 
-    // Boolean inflationFollowing;
     @ManyToOne
     @JoinColumn(name = "accounting_category_id")
     private AccountingCategory accountingCategory;
@@ -30,9 +29,8 @@ public class TransactionCategory {
     @Column(name = "direction") 
     private TransactionDirection direction;
 
-
     @Column(name = "description")
-    private String description; // optional: explanation of category
+    private String description; 
 
     @OneToMany(mappedBy = "category")
     @com.fasterxml.jackson.annotation.JsonIgnore

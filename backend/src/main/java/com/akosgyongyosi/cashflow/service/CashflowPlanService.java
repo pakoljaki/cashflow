@@ -2,7 +2,6 @@ package com.akosgyongyosi.cashflow.service;
 
 import com.akosgyongyosi.cashflow.entity.*;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
-import com.akosgyongyosi.cashflow.repository.HistoricalTransactionRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

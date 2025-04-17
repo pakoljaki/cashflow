@@ -3,16 +3,11 @@ package com.akosgyongyosi.cashflow.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
-import static com.akosgyongyosi.cashflow.entity.TransactionDirection.NEGATIVE;
-import static com.akosgyongyosi.cashflow.entity.TransactionDirection.POSITIVE;
-
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-/*import static com.akosgyongyosi.cashflow.entity.TransactionType.CASH;
-import static com.akosgyongyosi.cashflow.entity.TransactionType.TRANSFER;
-import static com.akosgyongyosi.cashflow.entity.TransactionType.UNKNOWN;*/
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -22,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Entity
 @EqualsAndHashCode
 @Table(name = "transactions")
+@NoArgsConstructor
+@AllArgsConstructor
 public class Transaction {
 
     @Id
@@ -53,15 +50,15 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
-    private TransactionDirection transactionDirection; // POSITIVE or NEGATIVE
+    private TransactionDirection transactionDirection;
 
     @Column(name = "transaction_code")
-    private String transactionCode; // MKB-s tranzakciótípus kivonati kód
+    private String transactionCode; 
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = true)
-    private TransactionCategory category; // categorization of transactions
+    private TransactionCategory category;
 
     @Column(columnDefinition = "TEXT")
     private String memo;
@@ -69,22 +66,5 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_method", nullable = false)
     private TransactionMethod transactionMethod;
-    
-    public Transaction() {}
 
-    public Transaction(BankAccount account, LocalDate bookingDate, LocalDate valueDate, String partnerName, 
-                       String partnerAccountNumber, BigDecimal amount, CurrencyType currency,
-                       TransactionDirection transactionDirection, String transactionCode, TransactionCategory category, String memo) {
-        this.account = account;
-        this.bookingDate = bookingDate;
-        this.valueDate = valueDate;
-        this.partnerName = partnerName;
-        this.partnerAccountNumber = partnerAccountNumber;
-        this.amount = amount;
-        this.currency = currency;
-        this.transactionDirection = transactionDirection;
-        this.transactionCode = transactionCode;
-        this.category = category;
-        this.memo = memo;
-    }
 }
