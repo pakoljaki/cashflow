@@ -12,6 +12,7 @@ import lombok.Setter;
 @Setter 
 @Getter
 public class KpiDashboardDTO {
+    private BigDecimal startBalance;
     private List<MonthlyKpiDTO> monthlyData;
     private BigDecimal totalRevenue = BigDecimal.ZERO;
     private BigDecimal totalExpenses = BigDecimal.ZERO;
