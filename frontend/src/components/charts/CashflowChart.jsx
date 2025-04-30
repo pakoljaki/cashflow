@@ -1,77 +1,118 @@
-// src/components/charts/CashflowChart.jsx
 import React, { useMemo } from 'react';
 import {
   ResponsiveContainer,
-  BarChart,
+  ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend
+  Legend,
+  ReferenceLine
 } from 'recharts';
 
-/**
- * Props:
- *   monthlyData: Array<{
- *     month: number,
- *     accountingCategorySums: { [category: string]: number },
- *     transactionCategorySums: { [category: string]: number }
- *   }>
- */
-export default function CashflowChart({ monthlyData }) {
-  // 1) Collect all category names
-  const categories = useMemo(() => {
-    const set = new Set();
-    monthlyData.forEach(m => {
-      Object.keys(m.accountingCategorySums || {}).forEach(c => set.add(c));
-      Object.keys(m.transactionCategorySums || {}).forEach(c => set.add(c));
-    });
-    return Array.from(set);
-  }, [monthlyData]);
+export default function CashflowChart({ monthlyData = [] }) {
+  const directions = useMemo(
+    () => monthlyData[0]?.transactionCategoryDirections || {},
+    [monthlyData]
+  );
 
-  // 2) Build the chart data array
-  const data = useMemo(() => {
-    return monthlyData.map(m => {
-      const obj = {
-        // you could format month → 'May 2018' if you pass down year/month strings
-        month: `M${m.month}`
-      };
-      categories.forEach(cat => {
-        const a = m.accountingCategorySums[cat] || 0;
-        const t = m.transactionCategorySums[cat] || 0;
-        obj[cat] = Number(a) + Number(t);
-      });
-      return obj;
-    });
-  }, [monthlyData, categories]);
+  const categories = useMemo(
+    () => Object.keys(directions),
+    [directions]
+  );
 
-  // 3) A simple palette—swap these out or style with CSS
-  const colors = [
-    '#4caf50','#ffca28','#2196f3','#ff7043',
-    '#9575cd','#26a69a','#ef5350','#ec407a'
+  const data = useMemo(
+    () =>
+      monthlyData.map(m => {
+        const row = {
+          month: `M${m.month}`,
+          bankBalance: Number(m.bankBalance || 0)
+        };
+        categories.forEach(cat => {
+          const raw = Number(m.transactionCategorySums[cat] || 0);
+          row[cat] = directions[cat] === 'NEGATIVE'
+            ? -Math.abs(raw)
+            : Math.abs(raw);
+        });
+        return row;
+      }),
+    [monthlyData, categories, directions]
+  );
+
+  const positiveColors = [
+    '#2e7d32','#388e3c','#43a047','#66bb6a','#81c784','#a5d6a7'
+  ];
+  const negativeColors = [
+    '#b71c1c','#c62828','#d32f2f','#e53935','#ef5350','#f44336'
   ];
 
+  const colors = useMemo(() => {
+    let pi = 0, ni = 0;
+    return categories.map(cat =>
+      directions[cat] === 'POSITIVE'
+        ? positiveColors[(pi++) % positiveColors.length]
+        : negativeColors[(ni++) % negativeColors.length]
+    );
+  }, [categories, directions]);
+
+  if (!data.length || !categories.length) return null;
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart
+    <ResponsiveContainer width="100%" height={400}>
+      <ComposedChart
         data={data}
-        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        stackOffset="sign"
+        margin={{ top: 20, right: 50, left: 20, bottom: 20 }}
       >
         <CartesianGrid strokeDasharray="3 3" />
+        <ReferenceLine yAxisId="left" y={0} stroke="#000" />
+
         <XAxis dataKey="month" />
-        <YAxis />
+
+        <YAxis
+          yAxisId="left"
+          orientation="left"
+          domain={['auto','auto']}
+          tick={{ fontSize: 12 }}
+          width={40}
+        />
+
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          domain={['auto','auto']}
+          tick={{ fontSize: 12 }}
+          width={40}
+        />
+
         <Tooltip />
-        <Legend />
+
+        <Legend
+          layout="horizontal"
+          verticalAlign="bottom"
+          wrapperStyle={{ paddingTop: 20 }}
+        />
+
         {categories.map((cat, i) => (
           <Bar
             key={cat}
             dataKey={cat}
-            stackId="stack"               // one stack group → positives stack up, negatives down
-            fill={colors[i % colors.length]}
+            stackId="a"
+            fill={colors[i]}
+            yAxisId="left"
           />
         ))}
-      </BarChart>
+
+        <Line
+          type="monotone"
+          dataKey="bankBalance"
+          stroke="#222"
+          dot={{ r: 3 }}
+          yAxisId="right"
+        />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
