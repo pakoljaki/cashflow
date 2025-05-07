@@ -3,6 +3,9 @@ package com.akosgyongyosi.cashflow.controller;
 import com.akosgyongyosi.cashflow.dto.UpdateCategoryMappingRequestDTO;
 import com.akosgyongyosi.cashflow.entity.AccountingCategory;
 import com.akosgyongyosi.cashflow.service.AccountingCategoryService;
+
+import lombok.extern.slf4j.Slf4j;
+
 import com.akosgyongyosi.cashflow.repository.AccountingCategoryRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounting-categories")
+@Slf4j
 public class AccountingCategoryController {
 
     private final AccountingCategoryService accountingCategoryService;
@@ -24,6 +28,7 @@ public class AccountingCategoryController {
 
     @GetMapping
     public List<AccountingCategory> getAllAccountingCategories() {
+        log.info("Fetching all accounting categories");
         return accountingCategoryService.getAllAccountingCategories();
     }
 

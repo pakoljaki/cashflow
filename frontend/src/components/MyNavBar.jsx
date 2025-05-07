@@ -1,28 +1,50 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Navbar, Nav, Container } from 'react-bootstrap';
+// src/components/MyNavBar.jsx
+import React from 'react'
+import { Navbar, Container } from 'react-bootstrap'
+import { NavLink } from 'react-router-dom'
+import MyButton from './MyButton'
+import '../styles/navbar.css'
 
-const MyNavBar = () => {
+export default function MyNavBar() {
   return (
-    <Navbar bg="light" expand="lg" className="my-navbar">
-      <Container>
-        <Navbar.Brand as={Link} to="/">Cashflow Planner</Navbar.Brand>
-        <Navbar.Toggle aria-controls="navbar-nav" />
+    <Navbar expand="lg" className="my-navbar sticky-top">
+      <Container fluid>
+        <Navbar.Brand as={NavLink} to="/" className="navbar-brand-custom">
+          Cashflow Planner
+        </Navbar.Brand>
+        <Navbar.Toggle
+          aria-controls="navbar-nav"
+          className="navbar-toggler-custom d-lg-none"
+        />
         <Navbar.Collapse id="navbar-nav">
-          <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-            <Nav.Link as={Link} to="/admin/csv-upload">CSV Upload</Nav.Link>
-            <Nav.Link as={Link} to="/transactions">Transactions</Nav.Link>
-            <Nav.Link as={Link} to="/cashflow-plans">Cashflow Plans</Nav.Link>
-            <Nav.Link as={Link} to="/kpis">KPI Page</Nav.Link>
-            <Nav.Link as={Link} to="/accounting-mapping">Accounting Mapping</Nav.Link>
-            <Nav.Link as={Link} to="/about">About</Nav.Link>
-            <Nav.Link as={Link} to="/login">Login</Nav.Link>
-          </Nav>
+          <div className="navbar-buttons">
+            <NavLink to="/dashboard" className="nav-button-link">
+              <MyButton variant="primary">Dashboard</MyButton>
+            </NavLink>
+            <NavLink to="/admin/csv-upload" className="nav-button-link">
+              <MyButton variant="primary">CSV Upload</MyButton>
+            </NavLink>
+            <NavLink to="/transactions" className="nav-button-link">
+              <MyButton variant="primary">Transactions</MyButton>
+            </NavLink>
+            <NavLink to="/cashflow-plans" className="nav-button-link">
+              <MyButton variant="primary">Cashflow Plans</MyButton>
+            </NavLink>
+            <NavLink to="/kpis" className="nav-button-link">
+              <MyButton variant="primary">KPI Page</MyButton>
+            </NavLink>
+            <NavLink to="/accounting-mapping" className="nav-button-link">
+              <MyButton variant="primary">Accounting Mapping</MyButton>
+            </NavLink>
+            <NavLink to="/about" className="nav-button-link">
+              <MyButton variant="primary">About</MyButton>
+            </NavLink>
+            <NavLink to="/login" className="nav-button-link">
+              <MyButton variant="primary">Login</MyButton>
+            </NavLink>
+          </div>
         </Navbar.Collapse>
       </Container>
     </Navbar>
-  );
-};
-
-export default MyNavBar;
+  )
+}

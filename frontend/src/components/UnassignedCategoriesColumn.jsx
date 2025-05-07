@@ -1,6 +1,7 @@
-import React from 'react';
-import { Droppable, Draggable } from '@hello-pangea/dnd';
-import TransactionCategoryTile from './TransactionCategoryTile';
+// src/components/UnassignedCategoriesColumn.jsx
+import React from 'react'
+import { Droppable, Draggable } from '@hello-pangea/dnd'
+import TransactionCategoryTile from './TransactionCategoryTile'
 
 export default function UnassignedCategoriesColumn({ transactionCategories }) {
   return (
@@ -18,20 +19,25 @@ export default function UnassignedCategoriesColumn({ transactionCategories }) {
           >
             {transactionCategories.map((tc, index) => (
               <Draggable key={tc.id} draggableId={String(tc.id)} index={index}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className="draggable-tile"
-                    style={{
-                      background: snapshot.isDragging ? '#ddd' : '#eee',
-                      ...provided.draggableProps.style
-                    }}
-                  >
-                    <TransactionCategoryTile transactionCategory={tc} />
-                  </div>
-                )}
+                {(provided, snapshot) => {
+                  const bg = snapshot.isDragging
+                    ? tc.direction === 'POSITIVE' ? '#a5d6a7' : '#ef9a9a'
+                    : tc.direction === 'POSITIVE' ? '#c8e6c9' : '#ffcdd2'
+                  return (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className="draggable-tile"
+                      style={{
+                        background: bg,
+                        ...provided.draggableProps.style
+                      }}
+                    >
+                      <TransactionCategoryTile transactionCategory={tc} />
+                    </div>
+                  )
+                }}
               </Draggable>
             ))}
             {provided.placeholder}
@@ -39,5 +45,5 @@ export default function UnassignedCategoriesColumn({ transactionCategories }) {
         )}
       </Droppable>
     </div>
-  );
+  )
 }

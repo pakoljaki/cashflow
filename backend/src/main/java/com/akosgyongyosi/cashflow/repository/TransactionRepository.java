@@ -17,4 +17,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findAllWithCategory();
 
     List<Transaction> findByBookingDateBetween(LocalDate start, LocalDate end);
+
+    Long countByCategoryId(Long categoryId);
 }

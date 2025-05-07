@@ -1,259 +1,252 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Button } from 'react-bootstrap';
-import '../styles/transactions.css';
+// src/pages/TransactionsPage.jsx
+import React, { useEffect, useState } from 'react'
+import {
+  Box,
+  Paper,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Button,
+  Typography,
+  TextField,
+} from '@mui/material'
+import Autocomplete from '@mui/material/Autocomplete'
+import '../styles/transactions.css'
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState([]);
-  const [selectedTransactionIds, setSelectedTransactionIds] = useState([]);
-  const [selectedDirection, setSelectedDirection] = useState(null); 
-
-  const [categories, setCategories] = useState([]);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [message, setMessage] = useState('');
+  const [transactions, setTransactions] = useState([])
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState([])
+  const [selectedDirection, setSelectedDirection] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [message, setMessage] = useState('')
+  const [filterCategory, setFilterCategory] = useState(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch('/api/transactions', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    const token = localStorage.getItem('token')
+    fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
-      .then(data => {
-        console.log("Transactions received:", data); 
-        setTransactions(data);
-      })
-      .catch(err => console.error('Error loading transactions', err));
-  }, []);
-  
+      .then(setTransactions)
+      .catch(console.error)
+  }, [])
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch('/api/categories', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    const token = localStorage.getItem('token')
+    fetch('/api/categories', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(err => console.error('Error loading categories', err));
-  }, []);
+      .then(setCategories)
+      .catch(console.error)
+  }, [])
 
-  const handleRowClick = (tx) => {
-    if (selectedTransactionIds.includes(tx.id)) {
-      const newIds = selectedTransactionIds.filter(id => id !== tx.id);
-      setSelectedTransactionIds(newIds);
-
-      if (newIds.length === 0) {
-        setSelectedDirection(null);
-      }
-      return;
-    }
-
-    // if nothing selected yet, adopt row direction
-    if (!selectedDirection) {
-      setSelectedDirection(tx.transactionDirection);
-      setSelectedTransactionIds([...selectedTransactionIds, tx.id]);
+  const handleRowClick = tx => {
+    const already = selectedTransactionIds.includes(tx.id)
+    if (already) {
+      const next = selectedTransactionIds.filter(id => id !== tx.id)
+      setSelectedTransactionIds(next)
+      if (!next.length) setSelectedDirection(null)
+    } else if (!selectedDirection || selectedDirection === tx.transactionDirection) {
+      setSelectedDirection(tx.transactionDirection)
+      setSelectedTransactionIds([...selectedTransactionIds, tx.id])
     } else {
-      // if direction matches, add row. otherwise ignore
-      if (selectedDirection === tx.transactionDirection) {
-        setSelectedTransactionIds([...selectedTransactionIds, tx.id]);
-      } else {
-        alert("You cannot mix POSITIVE and NEGATIVE transactions for categorization.");
-      }
+      alert('Cannot mix POSITIVE and NEGATIVE')
     }
-  };
+  }
 
-  // return a filtered list of categories for the selected direction
-  const positiveCategories = categories.filter(cat => cat.direction === "POSITIVE");
-  const negativeCategories = categories.filter(cat => cat.direction === "NEGATIVE");
+  const positiveCategories = categories.filter(c => c.direction === 'POSITIVE')
+  const negativeCategories = categories.filter(c => c.direction === 'NEGATIVE')
 
-  // if user clicks a category button -> bulk update
-  const handleCategoryClick = async (catId) => {
-    if (selectedTransactionIds.length === 0) {
-      alert("No transactions selected.");
-      return;
+  const handleCategoryClick = async catId => {
+    if (!selectedTransactionIds.length) {
+      alert('No transactions selected.')
+      return
     }
-    const token = localStorage.getItem('token');
-    try {
-      const resp = await fetch('/api/transactions/bulk-category', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          transactionIds: selectedTransactionIds,
-          categoryId: catId
-        })
-      });
-      if (!resp.ok) {
-        const errTxt = await resp.text();
-        throw new Error(errTxt);
-      }
-      setMessage("Category updated successfully!");
-      // refresh
-      refreshTransactions();
-      // clear selection
-      setSelectedTransactionIds([]);
-      setSelectedDirection(null);
-    } catch (err) {
-      console.error(err);
-      setMessage("Error updating category: " + err.message);
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/transactions/bulk-category', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ transactionIds: selectedTransactionIds, categoryId: catId }),
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      setMessage('Error: ' + txt)
+    } else {
+      setMessage('Category updated!')
+      refreshTransactions()
+      setSelectedTransactionIds([])
+      setSelectedDirection(null)
     }
-  };
+  }
 
-  // create new category for the selected direction
   const handleCreateCategory = async () => {
     if (!selectedDirection) {
-      alert("Select at least one transaction first (to define the direction), or pick a direction.");
-      return;
+      alert('Select transactions first.')
+      return
     }
     if (!newCategoryName.trim()) {
-      alert("Please enter a category name");
-      return;
+      alert('Enter a category name.')
+      return
     }
-    const token = localStorage.getItem('token');
-    try {
-      const resp = await fetch('/api/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: newCategoryName.trim(),
-          direction: selectedDirection
-        })
-      });
-      if (!resp.ok) {
-        const errTxt = await resp.text();
-        throw new Error(errTxt);
-      }
-      setMessage("New category created!");
-      setNewCategoryName('');
-      // reload categories
-      const data = await resp.json(); 
-      setCategories(old => [...old, data]);
-    } catch (err) {
-      console.error(err);
-      setMessage("Error creating category: " + err.message);
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: newCategoryName.trim(), direction: selectedDirection }),
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      setMessage('Error: ' + txt)
+    } else {
+      const created = await res.json()
+      setCategories([...categories, created])
+      setNewCategoryName('')
+      setMessage('New category created!')
     }
-  };
+  }
 
   const refreshTransactions = async () => {
-    const token = localStorage.getItem('token');
-    try {
-        const res = await fetch('/api/transactions', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch transactions');
-        
-        const data = await res.json();
-        setTransactions(data);
-    } catch (err) {
-        console.error('Error refreshing transactions:', err);
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) {
+      setTransactions(await res.json())
     }
-};
+  }
 
+  const headers = ['ID', 'Date', 'Amount', 'Currency', 'Partner', 'Account', 'Memo', 'Category']
+
+  const filteredTransactions = filterCategory
+    ? transactions.filter(tx => tx.category?.name === filterCategory)
+    : transactions
+
+  const categoryOptions = categories.map(c => c.name)
 
   return (
-    <div className="transactions-page">
-      {/* LEFT: table */}
-      <div className="transactions-container">
-        <h2>All Transactions</h2>
-        <Table bordered hover responsive className="transaction-table">
-          <thead>
-            <tr style={{ backgroundColor: '#007bff', color: 'white' }}>
-              <th>ID</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Currency</th>
-              <th>Partner</th>
-              <th>Account</th>
-              <th>Memo</th>
-              <th>Category</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map(tx => {
-              // highlight row if selected
-              const isSelected = selectedTransactionIds.includes(tx.id);
-              const rowClass = isSelected ? 'selected-row' : '';
+    <Box className="transactions-page">
+      <Paper className="transactions-container">
+        <Typography variant="h6" align="center" gutterBottom>
+          All Transactions
+        </Typography>
 
-              // show + or - with color
-              const isPos = tx.transactionDirection === "POSITIVE";
-              const sign = isPos ? "+" : "–";
-              const amountClass = isPos ? "positive" : "negative";
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Autocomplete
+            size="small"
+            options={categoryOptions}
+            value={filterCategory}
+            onChange={(_, v) => setFilterCategory(v)}
+            clearOnEscape
+            sx={{ width: 300 }}
+            renderInput={params => (
+              <TextField {...params} label="Filter by Category" placeholder="Select category" />
+            )}
+          />
+        </Box>
 
-              return (
-                <tr key={tx.id} className={rowClass} onClick={() => handleRowClick(tx)}>
-                  <td>{tx.id}</td>
-                  <td>{tx.bookingDate}</td>
-                  <td className={amountClass}>{sign}{tx.amount}</td>
-                  <td>{tx.currency}</td>
-                  <td>{tx.partnerName || "N/A"}</td>
-                  <td>{tx.partnerAccountNumber || "N/A"}</td>
-                  <td>{tx.memo || "N/A"}</td>
-                  <td>{tx.category ? tx.category.name : "Uncategorized"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
+        <TableContainer>
+          <Table className="transaction-table" stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                {headers.map(h => (
+                  <TableCell key={h} className="transaction-header-cell">
+                    {h}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredTransactions.map(tx => {
+                const isSelected = selectedTransactionIds.includes(tx.id)
+                const isPos = tx.transactionDirection === 'POSITIVE'
+                const sign = isPos ? '+' : '–'
+                return (
+                  <TableRow
+                    key={tx.id}
+                    onClick={() => handleRowClick(tx)}
+                    className={isSelected ? 'selected-row' : ''}
+                  >
+                    <TableCell>{tx.id}</TableCell>
+                    <TableCell>{tx.bookingDate}</TableCell>
+                    <TableCell
+                      sx={{
+                        color: isPos ? 'success.light' : 'error.light',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      {sign}{tx.amount}
+                    </TableCell>
+                    <TableCell>{tx.currency}</TableCell>
+                    <TableCell>{tx.partnerName || 'N/A'}</TableCell>
+                    <TableCell>{tx.partnerAccountNumber || 'N/A'}</TableCell>
+                    <TableCell>{tx.memo || 'N/A'}</TableCell>
+                    <TableCell>{tx.category?.name || 'Uncategorized'}</TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
         {message && <div className="info-message">{message}</div>}
-      </div>
+      </Paper>
 
-      {/* RIGHT: Category Panel */}
-      <div className="category-panel">
-        <h4>Categories</h4>
-        {selectedDirection === "POSITIVE" && (
-          <>
-            <p style={{ fontStyle: 'italic', color: '#28a745' }}>
-              Currently selecting POSITIVE transactions
-            </p>
-            {positiveCategories.map(cat => (
-              <div
-                key={cat.id}
-                className="category-button"
-                onClick={() => handleCategoryClick(cat.id)}
-              >
-                {cat.name}
-              </div>
-            ))}
-          </>
-        )}
-        {selectedDirection === "NEGATIVE" && (
-          <>
-            <p style={{ fontStyle: 'italic', color: '#dc3545' }}>
-              Currently selecting NEGATIVE transactions
-            </p>
-            {negativeCategories.map(cat => (
-              <div
-                key={cat.id}
-                className="category-button"
-                onClick={() => handleCategoryClick(cat.id)}
-              >
-                {cat.name}
-              </div>
-            ))}
-          </>
-        )}
+      <Paper className="category-panel">
+        <Typography variant="h6" gutterBottom>
+          Categories
+        </Typography>
         {!selectedDirection && (
-          <p style={{ color: '#666', fontSize: '0.9rem' }}>
-            Select some transactions to define a direction.
-          </p>
+          <Typography variant="body2" color="textSecondary">
+            Select transactions to define a direction.
+          </Typography>
         )}
-
-        {/* Add new category for current direction */}
+        {selectedDirection === 'POSITIVE' &&
+          positiveCategories.map(cat => (
+            <Button
+              key={cat.id}
+              variant="outlined"
+              className="category-button"
+              onClick={() => handleCategoryClick(cat.id)}
+            >
+              {cat.name}
+            </Button>
+          ))}
+        {selectedDirection === 'NEGATIVE' &&
+          negativeCategories.map(cat => (
+            <Button
+              key={cat.id}
+              variant="outlined"
+              className="category-button"
+              onClick={() => handleCategoryClick(cat.id)}
+            >
+              {cat.name}
+            </Button>
+          ))}
         <div className="new-category">
-          <h5>Add New Category</h5>
-          <input
-            type="text"
+          <Typography variant="subtitle1">Add New Category</Typography>
+          <TextField
+            size="small"
             placeholder="Category name..."
+            fullWidth
             value={newCategoryName}
             onChange={e => setNewCategoryName(e.target.value)}
           />
-          <Button variant="outline-primary" onClick={handleCreateCategory}>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 1 }}
+            onClick={handleCreateCategory}
+          >
             Create Category
           </Button>
         </div>
-      </div>
-    </div>
-  );
+      </Paper>
+    </Box>
+  )
 }

@@ -1,0 +1,36 @@
+/* src/pages/cashflowplans.css */
+.cashflowplans-page {
+    display: flex;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 40px auto;
+    font-family: Arial, sans-serif;
+  }
+  
+  .cashflowplans-table-container,
+  .cashflowplans-form-container {
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .cashflowplans-table-container {
+    flex: 2;
+  }
+  
+  .cashflowplans-form-container {
+    flex: 1;
+  }
+  
+  .cashflow-header-cell,
+  .MuiTableCell-stickyHeader {
+    background-color: #007bff !important;
+    color: #fff !important;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  
+  .MuiTableRow-root:hover td {
+    background-color: #e9ecef;
+  }
+  

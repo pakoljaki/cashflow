@@ -1,27 +1,60 @@
+/* src/styles/navbar.css */
 .my-navbar {
-    background-color: #343a40 !important; 
-    padding: 10px 20px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-brand-custom {
+    background-color: #007bff;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .my-navbar .container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .navbar-brand-custom {
+    color: #fff !important;
     font-size: 1.5rem;
-    font-weight: bold;
-    color: white !important;
-}
-
-.navbar-nav .nav-link {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.8) !important;
-    padding: 8px 15px;
-    transition: background-color 0.3s ease;
-}
-
-.navbar-nav .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 5px;
-}
-
-.navbar-toggler {
-    border-color: rgba(255, 255, 255, 0.5);
-}
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding-left: 0.5rem;
+    text-decoration: none !important;
+  }
+  
+  .navbar-toggler-custom {
+    border: none;
+  }
+  
+  .navbar-toggler-icon {
+    filter: invert(1);
+  }
+  
+  .navbar-buttons {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .nav-button-link {
+    text-decoration: none;
+  }
+  
+  .nav-button-link .my-button {
+    padding: 0.5rem 1rem;
+    transition: filter 0.2s;
+  }
+  
+  .nav-button-link .my-button:hover {
+    filter: brightness(0.9);
+  }
+  
+  @media (max-width: 768px) {
+    .navbar-buttons {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .nav-button-link .my-button {
+      width: 100%;
+    }
+  }
+  

@@ -1,84 +1,82 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/CashflowPlansPage.jsx
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Box,
+  Paper,
+  Typography,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TextField,
+  Button,
+} from '@mui/material'
+import '../styles/cashflowplans.css'
 
 export default function CashflowPlansPage() {
-  const navigate = useNavigate();
-  const [allPlans, setAllPlans] = useState([]);
-  const [groupedPlans, setGroupedPlans] = useState([]); 
-  const [basePlanName, setBasePlanName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [startBalance, setStartBalance] = useState('');
-  const [message, setMessage] = useState('');
+  const navigate = useNavigate()
+  const [allPlans, setAllPlans] = useState([])
+  const [groupedPlans, setGroupedPlans] = useState([])
+  const [basePlanName, setBasePlanName] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [startBalance, setStartBalance] = useState('')
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
-    fetchAllPlans();
-  }, []);
+    fetchAllPlans()
+  }, [])
 
   async function fetchAllPlans() {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('token')
     if (!token) {
-      setMessage('Not logged in');
-      return;
+      setMessage('Not logged in')
+      return
     }
     try {
-      const resp = await fetch("http://localhost:8080/api/cashflow-plans", {
+      const resp = await fetch('/api/cashflow-plans', {
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      });
-      if (!resp.ok) {
-        throw new Error('Failed to fetch plans');
-      }
-      const data = await resp.json();
-      setAllPlans(data);
-      groupByScenario(data);
-    } catch (error) {
-      console.error("Error fetching plans:", error);
-      setMessage(error.message);
+      })
+      if (!resp.ok) throw new Error('Failed to fetch plans')
+      const data = await resp.json()
+      setAllPlans(data)
+      groupByScenario(data)
+    } catch (err) {
+      setMessage(err.message)
     }
   }
 
-    function groupByScenario(plansArray) {
-    const map = new Map();
+  function groupByScenario(plansArray) {
+    const map = new Map()
     for (let plan of plansArray) {
-      if (!map.has(plan.groupKey)) {
-        map.set(plan.groupKey, []);
-      }
-      map.get(plan.groupKey).push(plan);
+      if (!map.has(plan.groupKey)) map.set(plan.groupKey, [])
+      map.get(plan.groupKey).push(plan)
     }
-
-       const result = [];
+    const result = []
     for (let [groupKey, plansInGroup] of map.entries()) {
-      let displayedPlan = plansInGroup.find(p => p.scenario === 'REALISTIC');
-      if (!displayedPlan) {
-        displayedPlan = plansInGroup[0]; 
-      }
-      result.push(displayedPlan);
+      let displayed = plansInGroup.find(p => p.scenario === 'REALISTIC') || plansInGroup[0]
+      result.push(displayed)
     }
-    setGroupedPlans(result);
+    setGroupedPlans(result)
   }
 
   async function handleCreateScenarios() {
     if (!basePlanName || !startDate || !endDate) {
-      alert('Please fill in base plan name, start date, and end date');
-      return;
+      alert('Please fill in all fields')
+      return
     }
-
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     if (!token) {
-      setMessage('Not logged in');
-      return;
+      setMessage('Not logged in')
+      return
     }
-
-    const bodyData = {
-      basePlanName,
-      startDate,
-      endDate,
-      startBalance: startBalance || '0',
-    };
-
+    const body = { basePlanName, startDate, endDate, startBalance: startBalance || '0' }
     try {
       const resp = await fetch('/api/cashflow-plans/scenarios', {
         method: 'POST',
@@ -86,114 +84,112 @@ export default function CashflowPlansPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(bodyData),
-      });
-      if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(txt);
-      }
-
-      const newGroupOfPlans = await resp.json();
-      setMessage('Created 3 scenario plans successfully!');
-
-      const updated = [...allPlans, ...newGroupOfPlans];
-      setAllPlans(updated);
-      groupByScenario(updated);
-
-      setBasePlanName('');
-      setStartDate('');
-      setEndDate('');
-      setStartBalance('');
-    } catch (error) {
-      setMessage('Error creating scenario plans: ' + error.message);
+        body: JSON.stringify(body),
+      })
+      if (!resp.ok) throw new Error(await resp.text())
+      const newGroup = await resp.json()
+      setMessage('Created 3 scenario plans successfully!')
+      const updated = [...allPlans, ...newGroup]
+      setAllPlans(updated)
+      groupByScenario(updated)
+      setBasePlanName('')
+      setStartDate('')
+      setEndDate('')
+      setStartBalance('')
+    } catch (err) {
+      setMessage('Error: ' + err.message)
     }
   }
 
+  const headers = ['ID', 'Plan Name', 'Start Date', 'End Date', 'Start Balance', 'Actions']
+
   return (
-    <div style={{ display: 'flex', padding: '1rem' }}>
-      {/* LEFT SIDE: Table of scenario groups */}
-      <div style={{ flex: 2, marginRight: '1rem' }}>
-        <h2>Cashflow Plans (Grouped by Scenario)</h2>
-        {message && <div style={{ color: 'red' }}>{message}</div>}
-
-        {groupedPlans.length === 0 ? (
-          <p>No plans found.</p>
-        ) : (
-          <table border="1" cellPadding="8" style={{ width: '100%' }}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Plan Name</th>
-                {/* We intentionally skip showing scenario */}
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Start Balance</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupedPlans.map(plan => (
-                <tr key={plan.id}>
-                  <td>{plan.id}</td>
-                  <td>{plan.planName}</td>
-                  <td>{plan.startDate}</td>
-                  <td>{plan.endDate}</td>
-                  <td>{plan.startBalance}</td>
-                  <td>
-                    {/* 
-                       If you still want to see line items for that 
-                       specific scenario plan, you can keep a button: 
-                       <button onClick={() => navigate(`/plans/${plan.id}`)}>View Items</button>
-                    */}
-                    <button onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}>
-                      Manage Group
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <Box className="cashflowplans-page">
+      <Paper className="cashflowplans-table-container">
+        <Typography variant="h6" align="center" gutterBottom>
+          Cashflow Plans (Grouped by Scenario)
+        </Typography>
+        {message && (
+          <Typography color="error" align="center" sx={{ mb: 1 }}>
+            {message}
+          </Typography>
         )}
-      </div>
+        <TableContainer>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                {headers.map(h => (
+                  <TableCell key={h} className="cashflow-header-cell">
+                    {h}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {groupedPlans.map(plan => (
+                <TableRow key={plan.id} hover>
+                  <TableCell>{plan.id}</TableCell>
+                  <TableCell>{plan.planName}</TableCell>
+                  <TableCell>{plan.startDate}</TableCell>
+                  <TableCell>{plan.endDate}</TableCell>
+                  <TableCell>{plan.startBalance}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}
+                    >
+                      Manage
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-      {/* RIGHT SIDE: Create new 3-scenario plan group */}
-      <div style={{ flex: 1, border: '1px solid #ccc', padding: '1rem' }}>
-        <h4>Create 3-Scenario Plan Group</h4>
-        <div>
-          <label>Base Plan Name: </label>
-          <input
-            type="text"
-            value={basePlanName}
-            onChange={(e) => setBasePlanName(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Start Date: </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>End Date: </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Starting Balance: </label>
-          <input
-            type="number"
-            step="0.01"
-            value={startBalance}
-            onChange={(e) => setStartBalance(e.target.value)}
-          />
-        </div>
-        <button onClick={handleCreateScenarios}>Create Plans (Worst/Realistic/Best)</button>
-      </div>
-    </div>
-  );
+      <Paper className="cashflowplans-form-container">
+        <Typography variant="h6" gutterBottom>
+          Create 3-Scenario Plan Group
+        </Typography>
+        <TextField
+          label="Base Plan Name"
+          value={basePlanName}
+          onChange={e => setBasePlanName(e.target.value)}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          label="Start Date"
+          type="date"
+          InputLabelProps={{ shrink: true }}
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          label="End Date"
+          type="date"
+          InputLabelProps={{ shrink: true }}
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          label="Starting Balance"
+          type="number"
+          value={startBalance}
+          onChange={e => setStartBalance(e.target.value)}
+          fullWidth
+          sx={{ mb: 3 }}
+        />
+        <Button variant="contained" color="primary" fullWidth onClick={handleCreateScenarios}>
+          Create Plans
+        </Button>
+      </Paper>
+    </Box>
+  )
 }

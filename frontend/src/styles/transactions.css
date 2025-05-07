@@ -1,120 +1,88 @@
-/* Container wrapping the entire page: table on left, categories on right */
+/* src/styles/transactions.css */
 .transactions-page {
-    display: flex;
-    gap: 20px;
-    max-width: 1400px;
-    margin: 40px auto;
-    font-family: Arial, sans-serif;
-  }
+  display: flex;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 40px auto;
+  font-family: Arial, sans-serif;
+}
 
-  .transactions-container {
-    flex: 2;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .transactions-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .transaction-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .transaction-table thead {
-    background: #007bff;
-    color: white;
-  }
-  
-  .transaction-table th, 
-  .transaction-table td {
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
-    text-align: left;
-  }
-  
-  .transaction-table tbody tr:nth-child(odd) {
-    background-color: #f8f9fa;
-  }
-  
-  .transaction-table tbody tr:hover {
-    background-color: #e9ecef;
-    cursor: pointer;
-  }
-  
-  .selected-row {
-    background-color: #ffeeba !important; /* a light yellow highlight */
-  }
-  
-  .positive {
-    color: green;
-    font-weight: bold;
-  }
-  .negative {
-    color: red;
-    font-weight: bold;
-  }
+.transactions-container {
+  flex: 2;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
-  .category-panel {
-    flex: 1;
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    height: fit-content;
-    min-height: 300px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
+.transactions-container h6 {
+  margin: 0 0 16px;
+}
 
-  .category-panel h4 {
-    font-size: 1.2rem;
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-weight: bold;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 5px;
-  }
+.transaction-header-cell,
+.MuiTableCell-stickyHeader {
+  background-color: #007bff !important;
+  color: #fff !important;
+  font-weight: bold;
+  text-transform: uppercase;
+}
 
-  .category-button {
-    display: inline-block;
-    margin: 4px;
-    padding: 8px 12px;
-    background-color: #e2e6ea;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    cursor: pointer;
-    color: #495057;
-    transition: background-color 0.2s;
-  }
-  .category-button:hover {
-    background-color: #adb5bd;
-  }
+.transaction-table tbody tr:nth-of-type(even) {
+  background-color: #f9f9f9;
+}
 
-  .new-category {
-    margin-top: 20px;
-    border-top: 1px solid #ccc;
-    padding-top: 10px;
-  }
-  .new-category input {
-    width: 100%;
-    margin-bottom: 8px;
-    padding: 8px;
-    box-sizing: border-box;
-  }
-  
-  .info-message {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-    border-radius: 4px;
-    padding: 10px;
-    margin-top: 10px;
-    font-size: 0.9rem;
-  }
-  
+.transaction-table tbody tr:hover {
+  background-color: #e9ecef;
+  cursor: pointer;
+}
+
+.selected-row {
+  background-color: #ffeeba !important;
+}
+
+.category-panel {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-panel h6 {
+  margin-top: 0;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 8px;
+}
+
+.category-button {
+  display: inline-block;
+  margin: 4px;
+  padding: 8px 12px;
+  background-color: #e2e6ea;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #495057;
+  transition: background-color 0.2s;
+}
+
+.category-button:hover {
+  background-color: #adb5bd;
+}
+
+.new-category {
+  margin-top: 20px;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+}
+
+.info-message {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
