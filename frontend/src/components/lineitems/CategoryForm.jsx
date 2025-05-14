@@ -1,4 +1,3 @@
-// src/components/lineitems/CategoryForm.jsx
 import React, { useState, useEffect } from 'react'
 import {
   Box,
@@ -12,8 +11,7 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
-  Paper,
-  Divider,
+  InputAdornment
 } from '@mui/material'
 
 export default function CategoryForm({ plans, onSuccess }) {
@@ -23,76 +21,55 @@ export default function CategoryForm({ plans, onSuccess }) {
   const [endDate, setEndDate] = useState('')
   const [categories, setCategories] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false)
-  const [newCatName, setNewCatName] = useState('')
-  const [newCatDirection, setNewCatDirection] = useState('NEGATIVE')
   const [scenarioData, setScenarioData] = useState(
-    scenarios.reduce((acc, s) => ({ ...acc, [s]: { active: false, percent: '' } }), {})
+    scenarios.reduce((acc, s) => ({ ...acc, [s]: { active: false, percent: '100' } }), {})
   )
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    fetch('/api/categories', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-      .then(r => r.json())
+    fetch('/api/categories', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then((r) => r.json())
       .then(setCategories)
       .catch(console.error)
   }, [])
 
-  const toggleScenario = s =>
-    setScenarioData(prev => ({
+  const toggleScenario = (s) =>
+    setScenarioData((prev) => ({
       ...prev,
-      [s]: { ...prev[s], active: !prev[s].active },
+      [s]: { ...prev[s], active: !prev[s].active }
     }))
 
   const handlePercentChange = (s, val) =>
-    setScenarioData(prev => ({
+    setScenarioData((prev) => ({
       ...prev,
-      [s]: { ...prev[s], percent: val },
+      [s]: { ...prev[s], percent: val }
     }))
-
-  const handleCreateCategory = async () => {
-    if (!newCatName.trim()) return
-    const resp = await fetch('/api/categories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify({ name: newCatName.trim(), direction: newCatDirection }),
-    })
-    if (resp.ok) {
-      const cat = await resp.json()
-      setCategories(prev => [...prev, cat])
-      setSelectedCategoryId(cat.id)
-      setShowNewCategoryForm(false)
-      setNewCatName('')
-      setNewCatDirection('NEGATIVE')
-    }
-  }
 
   const handleSubmit = async () => {
     if (!title.trim()) return
-    let sharedId = null,
-      count = 0
+    let sharedId = null
+    let count = 0
     for (let plan of plans) {
       const sc = plan.scenario
       if (!scenarioData[sc].active) continue
       const body = {
         title: title.trim(),
         type: 'CATEGORY_ADJUSTMENT',
-        percentChange: parseFloat(scenarioData[sc].percent) || 0,
+        percentChange: parseFloat(scenarioData[sc].percent) / 100,
         categoryId: selectedCategoryId || null,
         startDate: startDate || null,
-        endDate: endDate || null,
+        endDate: endDate || null
       }
       if (sharedId) body.assumptionId = sharedId
       const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body)
       })
       if (resp.ok) {
         const item = await resp.json()
@@ -101,7 +78,7 @@ export default function CategoryForm({ plans, onSuccess }) {
       }
     }
     setMessage(`Added to ${count} scenario(s).`)
-    if (onSuccess) onSuccess()
+    onSuccess && onSuccess()
   }
 
   return (
@@ -115,7 +92,7 @@ export default function CategoryForm({ plans, onSuccess }) {
       <TextField
         label="Title"
         value={title}
-        onChange={e => setTitle(e.target.value)}
+        onChange={(e) => setTitle(e.target.value)}
         fullWidth
       />
       <Box sx={{ display: 'flex', gap: 1 }}>
@@ -123,7 +100,7 @@ export default function CategoryForm({ plans, onSuccess }) {
           label="Start Date"
           type="date"
           value={startDate}
-          onChange={e => setStartDate(e.target.value)}
+          onChange={(e) => setStartDate(e.target.value)}
           InputLabelProps={{ shrink: true }}
           fullWidth
         />
@@ -131,7 +108,7 @@ export default function CategoryForm({ plans, onSuccess }) {
           label="End Date"
           type="date"
           value={endDate}
-          onChange={e => setEndDate(e.target.value)}
+          onChange={(e) => setEndDate(e.target.value)}
           InputLabelProps={{ shrink: true }}
           fullWidth
         />
@@ -141,49 +118,19 @@ export default function CategoryForm({ plans, onSuccess }) {
         <Select
           value={selectedCategoryId}
           label="Category"
-          onChange={e => setSelectedCategoryId(e.target.value)}
+          onChange={(e) => setSelectedCategoryId(e.target.value)}
         >
           <MenuItem value="">None</MenuItem>
-          {categories.map(cat => (
+          {categories.map((cat) => (
             <MenuItem key={cat.id} value={cat.id}>
               {cat.name} ({cat.direction})
             </MenuItem>
           ))}
         </Select>
       </FormControl>
-      <Button onClick={() => setShowNewCategoryForm(prev => !prev)}>
-        {showNewCategoryForm ? 'Cancel' : 'New Category'}
-      </Button>
-      {showNewCategoryForm && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="subtitle1">New Category</Typography>
-          <TextField
-            label="Name"
-            value={newCatName}
-            onChange={e => setNewCatName(e.target.value)}
-            fullWidth
-            sx={{ mb: 1 }}
-          />
-          <FormControl fullWidth>
-            <InputLabel>Direction</InputLabel>
-            <Select
-              value={newCatDirection}
-              label="Direction"
-              onChange={e => setNewCatDirection(e.target.value)}
-            >
-              <MenuItem value="POSITIVE">POSITIVE</MenuItem>
-              <MenuItem value="NEGATIVE">NEGATIVE</MenuItem>
-            </Select>
-          </FormControl>
-          <Button variant="contained" sx={{ mt: 1 }} onClick={handleCreateCategory}>
-            Save Category
-          </Button>
-        </Paper>
-      )}
-      <Divider />
-      <Typography variant="subtitle1">Scenarios</Typography>
+      <Typography variant="subtitle1">Scenarios (100% = original amount)</Typography>
       <FormGroup>
-        {scenarios.map(s => (
+        {scenarios.map((s) => (
           <Box key={s} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <FormControlLabel
               control={
@@ -195,12 +142,13 @@ export default function CategoryForm({ plans, onSuccess }) {
               label={s}
             />
             <TextField
-              label="% Change"
+              label="% of original"
               type="number"
               size="small"
-              disabled={!scenarioData[s].active}
               value={scenarioData[s].percent}
-              onChange={e => handlePercentChange(s, e.target.value)}
+              onChange={(e) => handlePercentChange(s, e.target.value)}
+              disabled={!scenarioData[s].active}
+              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
             />
           </Box>
         ))}

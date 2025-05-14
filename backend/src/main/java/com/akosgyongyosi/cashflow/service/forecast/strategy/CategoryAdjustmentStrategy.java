@@ -17,15 +17,17 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
 
     @Override
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
-        for (HistoricalTransaction transaction : plan.getBaselineTransactions()) {
-            if (transaction.getCategory() != null && transaction.getCategory().equals(item.getCategory())) {
-                LocalDate txDate = transaction.getTransactionDate();
-                LocalDate startDate = plan.getStartDate();
-                LocalDate endDate = plan.getStartDate();
+        BigDecimal factor = BigDecimal.valueOf(item.getPercentChange())
+                                      .divide(BigDecimal.valueOf(100));
+        LocalDate startDate = item.getStartDate() != null ? item.getStartDate() : plan.getStartDate();
+        LocalDate endDate   = item.getEndDate()   != null ? item.getEndDate()   : plan.getEndDate();
 
+        for (HistoricalTransaction tx : plan.getBaselineTransactions()) {
+            if (tx.getCategory() != null && tx.getCategory().equals(item.getCategory())) {
+                LocalDate txDate = tx.getTransactionDate();
                 if (!txDate.isBefore(startDate) && !txDate.isAfter(endDate)) {
-                    BigDecimal adjustedAmount = transaction.getAmount().multiply(BigDecimal.valueOf(1 + item.getPercentChange()));
-                    transaction.setAmount(adjustedAmount);
+                    BigDecimal adjusted = tx.getAmount().multiply(factor);
+                    tx.setAmount(adjusted);
                 }
             }
         }

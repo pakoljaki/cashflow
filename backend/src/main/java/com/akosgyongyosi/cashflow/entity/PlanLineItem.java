@@ -46,5 +46,5 @@ public class PlanLineItem {
     @JoinColumn(name = "category_id")
     private TransactionCategory category;  
 
-    private Double percentChange;  // e.g. +0.10 means +10%
+    private Double percentChange;  
 }

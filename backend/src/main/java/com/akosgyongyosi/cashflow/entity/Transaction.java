@@ -67,4 +67,6 @@ public class Transaction {
     @Column(name = "transaction_method", nullable = false)
     private TransactionMethod transactionMethod;
 
+    // boolen ignore in plan, its a one-off transaction
+
 }

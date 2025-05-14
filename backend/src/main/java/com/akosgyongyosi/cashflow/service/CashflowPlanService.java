@@ -85,6 +85,17 @@ public class CashflowPlanService {
         hist.setAmount(tx.getAmount());
         hist.setCategory(tx.getCategory());
         hist.setCashflowPlan(plan);
+        hist.setSnapshotDate(LocalDate.now());
         return hist;
+    }
+
+    @Transactional
+    public boolean deletePlanGroup(String groupKey) {
+        List<CashflowPlan> plans = planRepository.findByGroupKey(groupKey);
+        if (plans.isEmpty()) {
+            return false;
+        }
+        planRepository.deleteAll(plans);
+        return true;
     }
 }

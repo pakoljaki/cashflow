@@ -1,10 +1,9 @@
-// src/pages/KpiPage.jsx
 import React, { useState } from 'react'
 import YearBalanceForm from '../components/YearBalanceForm'
 import MyButton from '../components/MyButton'
 import AccountingCategoryPieChart from '../components/AccountingCategoryPieChart'
 import TransactionCategoryPieChart from '../components/TransactionCategoryPieChart'
-import MonthlyKpiTable from '../components/MonthlyKpiTable'
+import MonthlyDataTable from '../components/MonthlyDataTable'
 import MonthlyBarChart from '../components/MonthlyBarChart'
 import '../styles/KpiPage.css'
 
@@ -96,9 +95,9 @@ export default function KpiPage() {
               </div>
               <div className="kpi-charts-right">
                 <div className="chart-card">
-                  <MonthlyKpiTable
-                    data={kpiData.monthlyData}
+                  <MonthlyDataTable
                     startBalance={kpiData.startBalance}
+                    monthlyData={kpiData.monthlyData}
                   />
                 </div>
                 <div className="chart-card">

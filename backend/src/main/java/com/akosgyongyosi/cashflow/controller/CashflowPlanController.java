@@ -90,8 +90,6 @@ public class CashflowPlanController {
         return ResponseEntity.ok(threePlans);
     }
 
-    // ←–––––––––––––––––––––––––––– NEW ENDPOINT ––––––––––––––––––––––––––––→
-
     @GetMapping("/{planId}/monthly-kpi")
     public ResponseEntity<List<MonthlyKpiDTO>> getMonthlyKpi(
             @PathVariable Long planId
@@ -101,5 +99,14 @@ public class CashflowPlanController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(dashboard.getMonthlyData());
+    }
+
+    @DeleteMapping("/group/{groupKey}")
+    public ResponseEntity<Void> deletePlanGroup(@PathVariable String groupKey) {
+        boolean deleted = planService.deletePlanGroup(groupKey);
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.noContent().build();
     }
 }

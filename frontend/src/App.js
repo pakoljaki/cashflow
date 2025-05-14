@@ -5,7 +5,7 @@ import HomePage from './pages/HomePage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import AdminCsvUpload from './pages/AdminCsvUpload';
+import CsvUpload from './pages/CsvUpload';
 import TransactionsPage from './pages/TransactionsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import PlanLineItemsPage from './pages/PlanLineItemsPage';
@@ -25,7 +25,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/admin/csv-upload" element={<AdminCsvUpload />} />
+          <Route path="/admin/csv-upload" element={<CsvUpload />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/plans/:planId" element={<PlanLineItemsPage />} />

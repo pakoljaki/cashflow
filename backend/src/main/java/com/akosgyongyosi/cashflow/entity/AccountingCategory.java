@@ -17,6 +17,11 @@ public class AccountingCategory {
     private String code;
     private String displayName;
     private String description;
+
+    //I JUST ADDED THIS, use this to determine whether to negate the sum of the accounting sum for the monthly kpi
+    @Enumerated(EnumType.STRING)
+    @Column(name = "direction") 
+    private TransactionDirection direction;
     
     @OneToMany(mappedBy = "accountingCategory")
     @JsonIgnoreProperties("accountingCategory")
