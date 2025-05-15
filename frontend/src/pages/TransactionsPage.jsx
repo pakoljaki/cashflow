@@ -1,4 +1,3 @@
-// src/pages/TransactionsPage.jsx
 import React, { useEffect, useState } from 'react'
 import {
   Box,
@@ -15,6 +14,7 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import '../styles/transactions.css'
+import { amountFormatter } from '../utils/numberFormatter'
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([])
@@ -30,7 +30,6 @@ export default function TransactionsPage() {
     fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(setTransactions)
-      .catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -38,7 +37,6 @@ export default function TransactionsPage() {
     fetch('/api/categories', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(setCategories)
-      .catch(console.error)
   }, [])
 
   const handleRowClick = tx => {
@@ -179,7 +177,7 @@ export default function TransactionsPage() {
                         fontWeight: 'bold',
                       }}
                     >
-                      {sign}{tx.amount}
+                      {sign}{amountFormatter.format(tx.amount)}
                     </TableCell>
                     <TableCell>{tx.currency}</TableCell>
                     <TableCell>{tx.partnerName || 'N/A'}</TableCell>

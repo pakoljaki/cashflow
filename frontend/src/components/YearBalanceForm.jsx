@@ -1,6 +1,6 @@
-// src/components/YearBalanceForm.jsx
 import React, { useState } from 'react'
 import MyButton from './MyButton'
+import { amountFormatter } from '../utils/numberFormatter'
 import '../styles/YearBalanceForm.css'
 
 export default function YearBalanceForm({ years, onSubmit }) {
@@ -31,6 +31,9 @@ export default function YearBalanceForm({ years, onSubmit }) {
           placeholder="Enter starting balance"
         />
       </div>
+      {balance && (
+        <p className="ybf-helper">{amountFormatter.format(Number(balance))} HUF</p>
+      )}
       <MyButton
         variant="success"
         disabled={!balance}

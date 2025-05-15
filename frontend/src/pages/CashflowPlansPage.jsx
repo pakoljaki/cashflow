@@ -1,4 +1,3 @@
-// src/pages/CashflowPlansPage.jsx
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -15,6 +14,7 @@ import {
   Button,
 } from '@mui/material'
 import '../styles/cashflowplans.css'
+import { amountFormatter } from '../utils/numberFormatter'
 
 export default function CashflowPlansPage() {
   const navigate = useNavigate()
@@ -102,28 +102,27 @@ export default function CashflowPlansPage() {
   }
 
   async function handleDeleteGroup(groupKey) {
-     if (!window.confirm('Are you sure you want to delete this plan group?')) return;
-     const token = localStorage.getItem('token');
-     if (!token) {
-       setMessage('Not logged in');
-       return;
-     }
-     try {
-       const resp = await fetch(`/api/cashflow-plans/group/${groupKey}`, {
-         method: 'DELETE',
-         headers: { Authorization: `Bearer ${token}` },
-       });
-       if (resp.status === 404) throw new Error('Plan group not found');
-       if (!resp.ok)        throw new Error(await resp.text() || 'Delete failed');
-       // remove from state
-       const remaining = allPlans.filter(p => p.groupKey !== groupKey);
-       setAllPlans(remaining);
-       groupByScenario(remaining);
-       setMessage('Deleted plan group successfully!');
-     } catch (err) {
-       setMessage('Error: ' + err.message);
-     }
-   }
+    if (!window.confirm('Are you sure you want to delete this plan group?')) return
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setMessage('Not logged in')
+      return
+    }
+    try {
+      const resp = await fetch(`/api/cashflow-plans/group/${groupKey}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (resp.status === 404) throw new Error('Plan group not found')
+      if (!resp.ok) throw new Error(await resp.text() || 'Delete failed')
+      const remaining = allPlans.filter(p => p.groupKey !== groupKey)
+      setAllPlans(remaining)
+      groupByScenario(remaining)
+      setMessage('Deleted plan group successfully!')
+    } catch (err) {
+      setMessage('Error: ' + err.message)
+    }
+  }
 
   const headers = ['ID', 'Plan Name', 'Start Date', 'End Date', 'Start Balance', 'Actions']
 
@@ -156,7 +155,7 @@ export default function CashflowPlansPage() {
                   <TableCell>{plan.planName}</TableCell>
                   <TableCell>{plan.startDate}</TableCell>
                   <TableCell>{plan.endDate}</TableCell>
-                  <TableCell>{plan.startBalance}</TableCell>
+                  <TableCell>{amountFormatter.format(plan.startBalance)}</TableCell>
                   <TableCell>
                     <Button
                       variant="contained"

@@ -1,37 +1,82 @@
-// src/components/TransactionCategoryPieChart.jsx
-import React from 'react'
-import { PieChart, Pie, Tooltip, Cell, Legend, ResponsiveContainer } from 'recharts'
+import React, { useState, useEffect } from 'react'
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Tooltip,
+  Cell,
+  Legend
+} from 'recharts'
+import { amountFormatter } from '../utils/numberFormatter'
 import '../styles/PieCharts.css'
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560', '#775DD0', '#00E396']
+const COLORS = [
+  '#0088FE','#00C49F','#FFBB28','#FF8042',
+  '#AF19FF','#FF4560','#775DD0','#00E396'
+]
 
 export default function TransactionCategoryPieChart({ data, chartType, title }) {
-  const desired = chartType === 'INCOME' ? 'POSITIVE' : 'NEGATIVE'
-  const agg = {}
-  data.forEach(m => {
-    const sums = m.transactionCategorySums || {}
-    const dirs = m.transactionCategoryDirections || {}
-    Object.entries(sums).forEach(([code, amt]) => {
-      if (dirs[code] === desired) {
-        agg[code] = (agg[code] || 0) + Number(amt)
+  const [cats, setCats] = useState([])
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    fetch('/api/categories', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(setCats)
+      .catch(console.error)
+  }, [])
+
+  const desiredDir = chartType === 'INCOME' ? 'POSITIVE' : 'NEGATIVE'
+
+  // initialize every transaction category of this direction to zero
+  const agg = cats
+    .filter(tc => tc.direction === desiredDir)
+    .reduce((acc, tc) => ({ ...acc, [tc.name]: 0 }), {})
+
+  // sum over every month’s transactionCategorySums
+  data.forEach(month => {
+    const sums = month.transactionCategorySums || {}
+    Object.entries(sums).forEach(([name, amt]) => {
+      if (name in agg) {
+        agg[name] += Number(amt)
       }
     })
   })
-  const chartData = Object.entries(agg)
-    .map(([name, value]) => ({ name, value }))
-    .filter(i => i.value > 0)
+
+  const chartData = cats
+    .filter(tc => tc.direction === desiredDir)
+    .map((tc, i) => ({
+      name: tc.name,
+      value: agg[tc.name] || 0
+    }))
+
   return (
     <div className="pie-chart-container">
       <h4 className="pie-title">{title}</h4>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
-          <Pie data={chartData} dataKey="value" nameKey="name" label>
+          <Pie
+            data={chartData}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            outerRadius={80}
+            label
+          >
             {chartData.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip />
-          <Legend verticalAlign="bottom" height={36} />
+          <Tooltip formatter={v => amountFormatter.format(v)} />
+          <Legend
+            layout="horizontal"
+            verticalAlign="bottom"
+            align="center"
+            wrapperStyle={{ paddingTop: 10, fontSize: '0.8rem', flexWrap: 'wrap' }}
+          />
         </PieChart>
       </ResponsiveContainer>
     </div>

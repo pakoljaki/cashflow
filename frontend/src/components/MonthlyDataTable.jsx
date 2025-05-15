@@ -1,25 +1,24 @@
-// src/components/MonthlyDataTable.jsx
 import React from 'react'
 import '../styles/monthlydatatable.css'
+import { amountFormatter } from '../utils/numberFormatter'
 
 export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] }) {
   if (!monthlyData.length) return null
 
   const rows   = [...monthlyData].sort((a, b) => a.month - b.month)
-  const months = rows.map((r) => r.month)
+  const months = rows.map(r => r.month)
 
-  // collect categories
   const categorySet = new Set()
-  rows.forEach((r) =>
-    Object.keys(r.accountingCategorySums || {}).forEach((c) => categorySet.add(c))
+  rows.forEach(r =>
+    Object.keys(r.accountingCategorySums || {}).forEach(c =>
+      categorySet.add(c)
+    )
   )
   const categories = Array.from(categorySet)
 
-  // incomes & expenses
-  const incomes  = rows.map((r) => Number(r.totalIncome))
-  const expenses = rows.map((r) => Number(r.totalExpense))
+  const incomes  = rows.map(r => Number(r.totalIncome))
+  const expenses = rows.map(r => Number(r.totalExpense))
 
-  // build openBalances iteratively
   const openBalances = []
   for (let i = 0; i < incomes.length; i++) {
     if (i === 0) {
@@ -29,13 +28,9 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
     }
   }
 
-  // net cash flows
   const netFlows = incomes.map((inc, i) => inc - expenses[i])
-
-  // end balances = open + net
   const endBalances = openBalances.map((ob, i) => ob + netFlows[i])
 
-  // expense buckets to show as negative
   const expenseCodes = ['COGS','OPEX','DEPR','TAX','FIN','OTHER_EXP','REPAY']
 
   return (
@@ -44,7 +39,7 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
         <thead>
           <tr>
             <th>Item</th>
-            {months.map((m) => (
+            {months.map(m => (
               <th key={m}>{`M${m}`}</th>
             ))}
           </tr>
@@ -53,15 +48,13 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
           <tr className="mdt-divider-bottom">
             <td>Open Balance</td>
             {openBalances.map((val, i) => (
-              <td key={i}>{val.toLocaleString()}</td>
+              <td key={i}>{amountFormatter.format(val)}</td>
             ))}
           </tr>
-
           <tr className="mdt-row-divider">
             <td colSpan={months.length + 1} />
           </tr>
-
-          {categories.map((cat) => (
+          {categories.map(cat => (
             <tr key={cat}>
               <td>{cat}</td>
               {rows.map((r, i) => {
@@ -70,22 +63,24 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
                 const cls = raw < 0 ? 'mdt-negative' : 'mdt-positive'
                 return (
                   <td key={i}>
-                    <span className={cls}>{raw.toLocaleString()}</span>
+                    <span className={cls}>
+                      {amountFormatter.format(raw)}
+                    </span>
                   </td>
                 )
               })}
             </tr>
           ))}
-
           <tr className="mdt-row-divider">
             <td colSpan={months.length + 1} />
           </tr>
-
           <tr>
             <td>Total Income</td>
             {incomes.map((v, i) => (
               <td key={i}>
-                <span className="mdt-positive">{v.toLocaleString()}</span>
+                <span className="mdt-positive">
+                  {amountFormatter.format(v)}
+                </span>
               </td>
             ))}
           </tr>
@@ -93,7 +88,9 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
             <td>Total Expense</td>
             {expenses.map((v, i) => (
               <td key={i}>
-                <span className="mdt-negative">{(-v).toLocaleString()}</span>
+                <span className="mdt-negative">
+                  {amountFormatter.format(-v)}
+                </span>
               </td>
             ))}
           </tr>
@@ -102,7 +99,7 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
             {netFlows.map((v, i) => (
               <td key={i}>
                 <span className={v < 0 ? 'mdt-negative' : 'mdt-positive'}>
-                  {v.toLocaleString()}
+                  {amountFormatter.format(v)}
                 </span>
               </td>
             ))}
@@ -110,7 +107,7 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
           <tr className="mdt-divider-top">
             <td>End Balance</td>
             {endBalances.map((v, i) => (
-              <td key={i}>{v.toLocaleString()}</td>
+              <td key={i}>{amountFormatter.format(v)}</td>
             ))}
           </tr>
         </tbody>

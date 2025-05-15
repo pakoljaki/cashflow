@@ -1,4 +1,3 @@
-// src/components/lineitems/RecurringForm.jsx
 import React, { useState, useEffect } from 'react'
 import {
   Box,
@@ -13,7 +12,9 @@ import {
   FormControlLabel,
   Checkbox,
   Paper,
+  InputAdornment
 } from '@mui/material'
+import { amountFormatter } from '../../utils/numberFormatter'
 
 export default function RecurringForm({ plans, onSuccess }) {
   const scenarios = ['WORST', 'REALISTIC', 'BEST']
@@ -33,7 +34,7 @@ export default function RecurringForm({ plans, onSuccess }) {
 
   useEffect(() => {
     fetch('/api/categories', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
       .then(r => r.json())
       .then(setCategories)
@@ -43,39 +44,18 @@ export default function RecurringForm({ plans, onSuccess }) {
   const toggleScenario = s =>
     setScenarioData(prev => ({
       ...prev,
-      [s]: { ...prev[s], active: !prev[s].active },
+      [s]: { ...prev[s], active: !prev[s].active }
     }))
 
   const handleAmountChange = (s, val) =>
     setScenarioData(prev => ({
       ...prev,
-      [s]: { ...prev[s], amount: val },
+      [s]: { ...prev[s], amount: val }
     }))
-
-  const handleCreateCategory = async () => {
-    if (!newCatName.trim()) return
-    const resp = await fetch('/api/categories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify({ name: newCatName.trim(), direction: newCatDirection }),
-    })
-    if (resp.ok) {
-      const cat = await resp.json()
-      setCategories(prev => [...prev, cat])
-      setSelectedCategoryId(cat.id)
-      setShowNewCategoryForm(false)
-      setNewCatName('')
-      setNewCatDirection('POSITIVE')
-    }
-  }
 
   const handleSubmit = async () => {
     if (!title.trim()) return
-    let sharedId = null,
-      count = 0
+    let sharedId = null, count = 0
     for (let plan of plans) {
       const sc = plan.scenario
       if (!scenarioData[sc].active) continue
@@ -86,16 +66,16 @@ export default function RecurringForm({ plans, onSuccess }) {
         frequency,
         startDate: startDate || null,
         endDate: endDate || null,
-        categoryId: selectedCategoryId || null,
+        categoryId: selectedCategoryId || null
       }
       if (sharedId) body.assumptionId = sharedId
       const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body)
       })
       if (resp.ok) {
         const item = await resp.json()
@@ -104,17 +84,13 @@ export default function RecurringForm({ plans, onSuccess }) {
       }
     }
     setMessage(`Added to ${count} scenario(s).`)
-    if (onSuccess) onSuccess()
+    onSuccess && onSuccess()
   }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="h6">Recurring Transaction</Typography>
-      {message && (
-        <Typography variant="body2" color="success.main">
-          {message}
-        </Typography>
-      )}
+      {message && <Typography variant="body2" color="success.main">{message}</Typography>}
       <TextField
         label="Title"
         value={title}
@@ -193,7 +169,7 @@ export default function RecurringForm({ plans, onSuccess }) {
               <MenuItem value="NEGATIVE">NEGATIVE</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="contained" sx={{ mt: 1 }} onClick={handleCreateCategory}>
+          <Button variant="contained" sx={{ mt: 1 }} onClick={handleSubmit}>
             Save Category
           </Button>
         </Paper>
@@ -218,6 +194,14 @@ export default function RecurringForm({ plans, onSuccess }) {
               disabled={!scenarioData[s].active}
               value={scenarioData[s].amount}
               onChange={e => handleAmountChange(s, e.target.value)}
+              helperText={
+                scenarioData[s].amount
+                  ? amountFormatter.format(Number(scenarioData[s].amount))
+                  : ''
+              }
+              InputProps={{
+                startAdornment: <InputAdornment position="start">HUF</InputAdornment>
+              }}
             />
           </Box>
         ))}

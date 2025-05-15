@@ -19,6 +19,7 @@ import RecurringForm from '../components/lineitems/RecurringForm'
 import CategoryForm from '../components/lineitems/CategoryForm'
 import CashflowChart from '../components/charts/CashflowChart'
 import MonthlyDataTable from '../components/MonthlyDataTable'
+import { amountFormatter } from '../utils/numberFormatter'
 
 export default function ScenarioGroupLineItemsPage() {
   const { groupKey } = useParams()
@@ -242,10 +243,12 @@ function ItemCell({ item, onDelete }) {
     <Box sx={{ border: '1px solid #ccc', p: 1, mb: 1, borderRadius: 1 }}>
       <Typography variant="subtitle2">{item.title}</Typography>
       {item.amount != null && (
-        <Typography variant="body2">Amt: {item.amount}</Typography>
+        <Typography variant="body2">
+          Amt: {amountFormatter.format(item.amount)}
+        </Typography>
       )}
       {item.percentChange != null && (
-        <Typography variant="body2">{(item.percentChange).toFixed(2)}%</Typography>
+        <Typography variant="body2">{item.percentChange.toFixed(2)}%</Typography>
       )}
       <Button size="small" color="error" onClick={onDelete}>
         Delete

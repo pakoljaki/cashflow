@@ -6,6 +6,7 @@ import TransactionCategoryPieChart from '../components/TransactionCategoryPieCha
 import MonthlyDataTable from '../components/MonthlyDataTable'
 import MonthlyBarChart from '../components/MonthlyBarChart'
 import '../styles/KpiPage.css'
+import { amountFormatter } from '../utils/numberFormatter'
 
 export default function KpiPage() {
   const [stage, setStage] = useState('form')
@@ -52,7 +53,7 @@ export default function KpiPage() {
         <>
           <header className="kpi-header">
             <h2>KPI Dashboard — {kpiData.year}</h2>
-            <p>Start Balance: {kpiData.startBalance.toLocaleString()} HUF</p>
+            <p>Start Balance: {amountFormatter.format(kpiData.startBalance)} HUF</p>
             <MyButton variant="outline-primary" onClick={reset}>
               Change Settings
             </MyButton>

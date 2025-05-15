@@ -18,8 +18,8 @@ export default function MyNavBar() {
         />
         <Navbar.Collapse id="navbar-nav">
           <div className="navbar-buttons">
-            <NavLink to="/dashboard" className="nav-button-link">
-              <MyButton variant="primary">Dashboard</MyButton>
+            <NavLink to="/login" className="nav-button-link">
+              <MyButton variant="primary">Login</MyButton>
             </NavLink>
             <NavLink to="/admin/csv-upload" className="nav-button-link">
               <MyButton variant="primary">CSV Upload</MyButton>
@@ -27,20 +27,14 @@ export default function MyNavBar() {
             <NavLink to="/transactions" className="nav-button-link">
               <MyButton variant="primary">Transactions</MyButton>
             </NavLink>
-            <NavLink to="/cashflow-plans" className="nav-button-link">
-              <MyButton variant="primary">Cashflow Plans</MyButton>
+            <NavLink to="/accounting-mapping" className="nav-button-link">
+              <MyButton variant="primary">Accounting Mapping</MyButton>
             </NavLink>
             <NavLink to="/kpis" className="nav-button-link">
               <MyButton variant="primary">KPI Page</MyButton>
             </NavLink>
-            <NavLink to="/accounting-mapping" className="nav-button-link">
-              <MyButton variant="primary">Accounting Mapping</MyButton>
-            </NavLink>
-            <NavLink to="/about" className="nav-button-link">
-              <MyButton variant="primary">About</MyButton>
-            </NavLink>
-            <NavLink to="/login" className="nav-button-link">
-              <MyButton variant="primary">Login</MyButton>
+            <NavLink to="/cashflow-plans" className="nav-button-link">
+              <MyButton variant="primary">Cashflow Plans</MyButton>
             </NavLink>
           </div>
         </Navbar.Collapse>
