@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { PieChart, Pie, Tooltip, Cell, Legend, ResponsiveContainer } from 'recharts'
-import '../styles/PieCharts.css'
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560', '#775DD0', '#00E396']
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ResponsiveContainer,
   PieChart,
@@ -8,7 +8,6 @@ import {
   Legend
 } from 'recharts'
 import { amountFormatter } from '../utils/numberFormatter'
-import '../styles/PieCharts.css'
 
 const COLORS = [
   '#0088FE','#00C49F','#FFBB28','#FF8042',

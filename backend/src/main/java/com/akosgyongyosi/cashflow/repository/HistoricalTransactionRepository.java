@@ -9,8 +9,6 @@ import java.util.List;
 
 @Repository
 public interface HistoricalTransactionRepository extends JpaRepository<HistoricalTransaction, Long> {
-    
     List<HistoricalTransaction> findByCashflowPlanId(Long cashflowPlanId);
-
     List<HistoricalTransaction> findByTransactionDateBetween(LocalDate startDate, LocalDate endDate);
 }

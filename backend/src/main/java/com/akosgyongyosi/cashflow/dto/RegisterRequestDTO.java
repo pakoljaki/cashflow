@@ -10,5 +10,5 @@ import lombok.Setter;
 public class RegisterRequestDTO {
     private String email;
     private String password;
-    private java.util.List<String> roles; // e.g. ["ADMIN", "VIEWER"]
+    private java.util.List<String> roles;
 }

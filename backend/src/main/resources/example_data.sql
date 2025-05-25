@@ -4,8 +4,6 @@ DELETE FROM historical_transactions;
 DELETE FROM transaction_categories;
 DELETE FROM accounting_categories;
 
-
-
 INSERT INTO accounting_categories
   (id, code, display_name, description, direction)
 VALUES
@@ -23,11 +21,6 @@ VALUES
 
 INSERT INTO bank_accounts (id, account_number, currency, bank_name, owner) VALUES
   (1, '1234567890', 'HUF', 'OTP Bank', 'Apartment Complex Owner');
-
---INSERT INTO users (id, email, password) VALUES (1, 'akos@akos', 'akos');
---INSERT INTO user_roles (user_id, role) VALUES (1, 'ADMIN');
-
--- INSERT INTO cashflow_plans (id, plan_name, start_date, end_date, start_balance, scenario_type, group_key, description) VALUES (1, '2025 Cashflow Plan', '2025-01-01', '2025-12-31', 1000000.00, 'REALISTIC', 'APARTMENT2025', 'Cashflow plan for the apartment complex in 2025');
 
 INSERT INTO assumption_id_sequence (seq_name, next_val) VALUES
   ('default', 1003);

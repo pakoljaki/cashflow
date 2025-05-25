@@ -8,11 +8,9 @@ import lombok.Setter;
 @Setter
 @Data
 public class RegisterResponseDTO {
+    public RegisterResponseDTO(String string, Object object) {
+        //TODO Auto-generated constructor stub
+    }
     private String message;
     private String token;
-
-    public RegisterResponseDTO(String message, String token) {
-        this.message = message;
-        this.token = token;
-    }
 }

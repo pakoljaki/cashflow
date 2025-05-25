@@ -17,7 +17,6 @@ public class MonthlyKpiDTO {
     private BigDecimal totalExpense = BigDecimal.ZERO;
     private BigDecimal netCashFlow = BigDecimal.ZERO;
     private BigDecimal bankBalance = BigDecimal.ZERO;
-
     private Map<String, BigDecimal> accountingCategorySums = new HashMap<>();
     private Map<String, BigDecimal> transactionCategorySums = new HashMap<>();
     private Map<String, String> transactionCategoryDirections = new HashMap<>();

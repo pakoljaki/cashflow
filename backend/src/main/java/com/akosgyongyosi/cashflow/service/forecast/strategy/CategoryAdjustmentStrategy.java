@@ -17,8 +17,7 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
 
     @Override
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
-        BigDecimal factor = BigDecimal.valueOf(item.getPercentChange())
-                                      .divide(BigDecimal.valueOf(100));
+        BigDecimal factor = BigDecimal.valueOf(item.getPercentChange());
         LocalDate startDate = item.getStartDate() != null ? item.getStartDate() : plan.getStartDate();
         LocalDate endDate   = item.getEndDate()   != null ? item.getEndDate()   : plan.getEndDate();
 

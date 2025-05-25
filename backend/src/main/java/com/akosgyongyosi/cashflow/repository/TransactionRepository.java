@@ -12,11 +12,8 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByTransactionDirection(String direction);
-    
     @Query("SELECT t FROM Transaction t LEFT JOIN FETCH t.category")
     List<Transaction> findAllWithCategory();
-
     List<Transaction> findByBookingDateBetween(LocalDate start, LocalDate end);
-
     Long countByCategoryId(Long categoryId);
 }

@@ -3,10 +3,8 @@ package com.akosgyongyosi.cashflow.controller;
 import com.akosgyongyosi.cashflow.dto.PlanLineItemRequestDTO;
 import com.akosgyongyosi.cashflow.dto.PlanLineItemResponseDTO;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
-import com.akosgyongyosi.cashflow.entity.HistoricalTransaction;
 import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import com.akosgyongyosi.cashflow.entity.TransactionCategory;
-import com.akosgyongyosi.cashflow.entity.LineItemType;
 import com.akosgyongyosi.cashflow.entity.Frequency;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.PlanLineItemRepository;
@@ -19,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.List;
-import java.util.Collections;
 import java.util.stream.Collectors;
 
 @RestController

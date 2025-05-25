@@ -3,7 +3,6 @@ package com.akosgyongyosi.cashflow;
 import com.akosgyongyosi.cashflow.entity.Role;
 import com.akosgyongyosi.cashflow.entity.User;
 import com.akosgyongyosi.cashflow.repository.UserRepository;
-import com.akosgyongyosi.cashflow.service.CsvImportService;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -28,7 +27,7 @@ public class CashflowApplication {
 	/**
      * On application startup, if there are no users in the database,
      * create a default admin with email "admin@admin", password "admin",
-     * and roles ADMIN, USER, VIEWER.
+     * and roles ADMIN, USER.
      */
     @Bean
     public CommandLineRunner initializeAdminUser(UserRepository userRepository,
@@ -41,8 +40,7 @@ public class CashflowApplication {
                 admin.setPassword(passwordEncoder.encode("admin"));
                 Set<Role> roles = new HashSet<>(Arrays.asList(
                     Role.ADMIN,
-                    Role.USER,
-                    Role.VIEWER
+                    Role.USER
                 ));
                 admin.setRoles(roles);
                 userRepository.save(admin);
@@ -52,16 +50,5 @@ public class CashflowApplication {
             }
         };
     }
-
-	/*@Bean
-	public CommandLineRunner run(CsvImportService csvImportService) {
-		return args -> {
-			if (System.getProperty("spring.test.context") == null) { // Skip in tests
-				System.out.println("Starting CSV import...");
-				csvImportService.importCsvFiles();
-				System.out.println("CSV import finished.");
-			}
-		};
-	}*/
 	
 }

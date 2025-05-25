@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import MyButton from './MyButton'
 import { amountFormatter } from '../utils/numberFormatter'
 import '../styles/YearBalanceForm.css'

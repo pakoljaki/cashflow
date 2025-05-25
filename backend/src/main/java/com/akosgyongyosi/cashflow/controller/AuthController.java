@@ -61,7 +61,7 @@ public class AuthController {
 
         Set<Role> roleSet = new HashSet<>();
         if (request.getRoles() == null || request.getRoles().isEmpty()) {
-            roleSet.add(Role.VIEWER);
+            roleSet.add(Role.USER);
         } else {
             for (String roleStr : request.getRoles()) {
                 try {

@@ -10,7 +10,5 @@ import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 
 @Repository
 public interface CashflowPlanRepository extends JpaRepository<CashflowPlan, Long> {
-
     List<CashflowPlan> findByGroupKey(String groupKey);
-
 }

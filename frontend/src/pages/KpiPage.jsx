@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import YearBalanceForm from '../components/YearBalanceForm'
 import MyButton from '../components/MyButton'
 import AccountingCategoryPieChart from '../components/AccountingCategoryPieChart'

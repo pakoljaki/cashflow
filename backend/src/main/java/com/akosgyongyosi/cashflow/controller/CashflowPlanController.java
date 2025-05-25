@@ -5,7 +5,7 @@ import com.akosgyongyosi.cashflow.dto.ScenarioPlanRequestDTO;
 import com.akosgyongyosi.cashflow.dto.MonthlyKpiDTO;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 import com.akosgyongyosi.cashflow.service.CashflowPlanService;
-import com.akosgyongyosi.cashflow.service.kpi.KpiDashboardCalculationService;
+import com.akosgyongyosi.cashflow.service.kpi.KpiCalculationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,11 +19,11 @@ import java.util.UUID;
 public class CashflowPlanController {
 
     private final CashflowPlanService planService;
-    private final KpiDashboardCalculationService kpiService;
+    private final KpiCalculationService kpiService;
 
     public CashflowPlanController(
             CashflowPlanService planService,
-            KpiDashboardCalculationService kpiService
+            KpiCalculationService kpiService
     ) {
         this.planService = planService;
         this.kpiService = kpiService;
@@ -94,7 +94,7 @@ public class CashflowPlanController {
     public ResponseEntity<List<MonthlyKpiDTO>> getMonthlyKpi(
             @PathVariable Long planId
     ) {
-        var dashboard = kpiService.calculateKpi(planId);
+        var dashboard = kpiService.calculateForPlan(planId);
         if (dashboard == null) {
             return ResponseEntity.notFound().build();
         }

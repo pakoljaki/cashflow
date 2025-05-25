@@ -18,7 +18,6 @@ public class CashflowCalculationService {
     }
 
     public void applyAllAssumptions(CashflowPlan plan) {
-        //Refactor so first the category adjusment is applied, so the transactions that get added to the plan wont get adjusted too.
         for (PlanLineItem item : plan.getLineItems()) {
             for (ForecastStrategy strategy : forecastStrategies) {
                 if (strategy.supports(item.getType())) {

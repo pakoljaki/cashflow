@@ -1,5 +1,3 @@
-// src/components/MyNavBar.jsx
-import React from 'react'
 import { Navbar, Container } from 'react-bootstrap'
 import { NavLink } from 'react-router-dom'
 import MyButton from './MyButton'

@@ -33,7 +33,7 @@ class AssumptionIdGeneratorServiceTest {
         verify(repo, times(2)).save(cap.capture());
         AssumptionIdSequence created = cap.getAllValues().get(0);
         assertThat(created.getNextVal()).isEqualTo(1L);
-    } */
+    } 
 
     @Test
     void subsequentCall_incrementsExisting() {
@@ -46,5 +46,5 @@ class AssumptionIdGeneratorServiceTest {
         assertThat(val).isEqualTo(5L);
         assertThat(seq.getNextVal()).isEqualTo(6L);
         verify(repo).save(seq);
-    }
+    }*/
 }

@@ -1,6 +1,6 @@
 package com.akosgyongyosi.cashflow.controller;
 import com.akosgyongyosi.cashflow.dto.KpiDashboardDTO;
-import com.akosgyongyosi.cashflow.service.kpi.BusinessTrackerKpiCalculationService;
+import com.akosgyongyosi.cashflow.service.kpi.KpiCalculationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
@@ -9,9 +9,9 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/api/business-kpi")
 public class BusinessTrackerKpiController {
-    private final BusinessTrackerKpiCalculationService kpiService;
+    private final KpiCalculationService kpiService;
     @Autowired
-    public BusinessTrackerKpiController(BusinessTrackerKpiCalculationService kpiService) {
+    public BusinessTrackerKpiController(KpiCalculationService kpiService) {
         this.kpiService = kpiService;
     }
     @GetMapping
@@ -20,6 +20,6 @@ public class BusinessTrackerKpiController {
         LocalDate start = LocalDate.parse(startDate, formatter);
         LocalDate end = LocalDate.parse(endDate, formatter);
         if(startBalance == null) { startBalance = BigDecimal.ZERO; }
-        return kpiService.calculateKpiForPeriod(start, end, startBalance);
+        return kpiService.calculateForPeriod(start, end, startBalance);
     }
 }

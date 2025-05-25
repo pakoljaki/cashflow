@@ -1,5 +1,3 @@
-// src/components/DeleteTransactionCategoryColumn.jsx
-import React from 'react'
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import { Box, Typography, Paper } from '@mui/material'
 

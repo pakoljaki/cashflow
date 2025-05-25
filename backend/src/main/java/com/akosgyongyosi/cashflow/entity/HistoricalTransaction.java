@@ -3,7 +3,6 @@ package com.akosgyongyosi.cashflow.entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,7 +38,6 @@ public class HistoricalTransaction {
     @JoinColumn(name = "category_id")
     @JsonIgnore 
     private TransactionCategory category;
-
 
     private LocalDate snapshotDate; 
 

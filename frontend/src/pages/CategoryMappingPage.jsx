@@ -1,5 +1,4 @@
-// src/pages/CategoryMappingPage.jsx
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { DragDropContext } from '@hello-pangea/dnd'
 import { Box, Typography, Paper, Button } from '@mui/material'
 import AccountingCategoryColumn from '../components/AccountingCategoryColumn'

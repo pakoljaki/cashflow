@@ -6,20 +6,12 @@ import lombok.Data;
 
 @Data
 public class PlanLineItemDTO {
-    
     private Long id;
-
-    private String type; // "RECURRING", "ONE_TIME", "CATEGORY_ADJUSTMENT"
-
+    private String type; 
     private String category;
-
     private BigDecimal amount;
-
     private LocalDate startDate;
-
     private LocalDate endDate;
-
-    private String frequency; // "WEEKLY", "MONTHLY", "QUARTERLY"
-
-    private BigDecimal percentageChange; // for category adjustments (e.g., +10%)
+    private String frequency; 
+    private BigDecimal percentageChange; 
 }

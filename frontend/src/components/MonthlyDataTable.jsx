@@ -1,4 +1,3 @@
-import React from 'react'
 import '../styles/monthlydatatable.css'
 import { amountFormatter } from '../utils/numberFormatter'
 

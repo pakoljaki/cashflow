@@ -22,7 +22,6 @@ import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -130,13 +129,7 @@ public class CsvImportService {
                 log.warn("Skipping line (empty ourAccountNumber): {}", r);
                 return null;
             }
-            BankAccount partnerAccount = partnerAcct == null || partnerAcct.isBlank()
-                                         ? null
-                                         : findOrCreateBankAccount(partnerAcct,
-                                                                   partnerName.isBlank() ? null : partnerName,
-                                                                   fileCurrency,
-                                                                   partnerName);
-
+            
             Transaction tx = new Transaction();
             tx.setAccount(ourAccount);
             tx.setBookingDate(bookingDate);

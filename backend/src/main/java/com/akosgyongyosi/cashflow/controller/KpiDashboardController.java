@@ -4,7 +4,7 @@ import com.akosgyongyosi.cashflow.dto.KpiDashboardDTO;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.service.forecast.CashflowCalculationService;
-import com.akosgyongyosi.cashflow.service.kpi.KpiDashboardCalculationService;
+import com.akosgyongyosi.cashflow.service.kpi.KpiCalculationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/kpi")
 public class KpiDashboardController {
 
-    private final KpiDashboardCalculationService kpiService;
+    private final KpiCalculationService kpiService;
     private final CashflowPlanRepository planRepository;
     private final CashflowCalculationService cashflowCalculationService;
 
     @Autowired
     public KpiDashboardController(
-            KpiDashboardCalculationService kpiService,
+            KpiCalculationService kpiService,
             CashflowPlanRepository planRepository,
             CashflowCalculationService cashflowCalculationService
     ) {
@@ -33,6 +33,6 @@ public class KpiDashboardController {
                 .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
         cashflowCalculationService.applyAllAssumptions(plan);
         planRepository.save(plan);
-        return kpiService.calculateKpi(planId);
+        return kpiService.calculateForPlan(planId);
     }
 }
