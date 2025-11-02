@@ -20,7 +20,7 @@ public class BankAccount {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CurrencyType currency;
+    private Currency currency;
 
     @Column(name = "bank_name")
     private String bankName; 

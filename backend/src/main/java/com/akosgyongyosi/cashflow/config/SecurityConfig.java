@@ -55,13 +55,12 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                // allow login & registration
+                    .requestMatchers("/api/fx/health").hasRole("ADMIN") //TODO ellenorizni ezt
+                    .requestMatchers("/api/fx/refresh").hasRole("ADMIN")
                 .requestMatchers("/api/auth/**").permitAll()
-                // only ADMIN may upload CSVs
                 .requestMatchers("/api/admin/csv/**").hasAuthority("ROLE_ADMIN")
-                // all other API calls require at least USER role
                 .requestMatchers("/api/**").hasAnyAuthority("ROLE_USER","ROLE_ADMIN")
-                // static resources, swagger UI, etc
+                .requestMatchers("/api/settings/fx/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
             .sessionManagement(sess ->

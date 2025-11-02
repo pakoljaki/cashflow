@@ -65,7 +65,7 @@ public class CsvImportService {
 
     private void processFile(Path file) {
         String fileName = file.getFileName().toString();
-        CurrencyType fileCurrency = parseCurrencyFromFilename(fileName);
+        Currency fileCurrency = parseCurrencyFromFilename(fileName);
         log.info("Processing file {} [{}]", fileName, fileCurrency);
 
         try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
@@ -79,7 +79,7 @@ public class CsvImportService {
 
     @Transactional
     public void parseSingleFile(InputStream in, String originalFilename) {
-        CurrencyType fileCurrency = parseCurrencyFromFilename(
+        Currency fileCurrency = parseCurrencyFromFilename(
                 originalFilename == null ? "" : originalFilename);
 
         try (BufferedReader reader =
@@ -92,7 +92,7 @@ public class CsvImportService {
         }
     }
 
-    private int parseCsv(BufferedReader reader, CurrencyType fileCurrency) throws IOException {
+    private int parseCsv(BufferedReader reader, Currency fileCurrency) throws IOException {
         int recordCount = 0;
 
         try (CSVParser parser = new CSVParser(reader,
@@ -109,7 +109,7 @@ public class CsvImportService {
         return recordCount;
     }
 
-    private Transaction mapToTransaction(CSVRecord r, CurrencyType fileCurrency) {
+    private Transaction mapToTransaction(CSVRecord r, Currency fileCurrency) {
         try {
             LocalDate bookingDate = LocalDate.parse(r.get(0), DATE_FMT);
             LocalDate valueDate   = LocalDate.parse(r.get(1), DATE_FMT);
@@ -165,7 +165,7 @@ public class CsvImportService {
     @Transactional
     private BankAccount findOrCreateBankAccount(String accountNumber,
                                                 String owner,
-                                                CurrencyType currency,
+                                                Currency currency,
                                                 String bankName) {
         if (accountNumber == null || accountNumber.isBlank()) {
             return null;
@@ -194,9 +194,9 @@ public class CsvImportService {
                 });
     }
 
-    private CurrencyType parseCurrencyFromFilename(String filename) {
+    private Currency parseCurrencyFromFilename(String filename) {
         String lower = filename.toLowerCase(Locale.ROOT);
-        return lower.contains("eur") ? CurrencyType.EUR : CurrencyType.HUF;
+        return lower.contains("eur") ? Currency.EUR : Currency.HUF;
     }
 
     private void renameAsProcessed(Path file) {

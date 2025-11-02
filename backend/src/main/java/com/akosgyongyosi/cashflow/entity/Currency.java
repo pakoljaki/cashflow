@@ -1,5 +1,5 @@
 package com.akosgyongyosi.cashflow.entity;
 
-public enum CurrencyType {
+public enum Currency {
     HUF, EUR, USD;
 }

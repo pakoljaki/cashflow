@@ -3,6 +3,9 @@ DELETE FROM historical_transactions;
 
 DELETE FROM transaction_categories;
 DELETE FROM accounting_categories;
+DELETE FROM bank_accounts;
+DELETE FROM assumption_id_sequence;
+DELETE FROM exchange_rate;
 
 INSERT INTO accounting_categories
   (id, code, display_name, description, direction)
@@ -45,13 +48,15 @@ VALUES
   (16, 'Loan Repayment', 10, 'NEGATIVE', 'Scheduled repayment of loan principal and interest.');
 
 
-
-INSERT INTO exchange_rates (id, date, from_currency, to_currency, rate)
+-- TODO: add Unique index on (rate_date, base_currency, quote_currency) in exchange_rate table
+INSERT INTO exchange_rate
+  (rate_date, base_currency, quote_currency, rate_mid, provider, fetched_at)
 VALUES
-  (1, '2025-04-13', 'HUF', 'EUR', 0.0028),
-  (2, '2025-04-13', 'HUF', 'USD', 0.0035),
-  (3, '2025-04-13', 'EUR', 'HUF', 350.0),
-  (4, '2025-04-13', 'USD', 'HUF', 285.0);
+  ('2025-04-13', 'HUF', 'EUR', 0.00280000, 'MNB', CURRENT_TIMESTAMP),
+  ('2025-04-13', 'HUF', 'USD', 0.00350000, 'MNB', CURRENT_TIMESTAMP),
+  ('2025-04-13', 'EUR', 'HUF', 350.00000000, 'MNB', CURRENT_TIMESTAMP),
+  ('2025-04-13', 'USD', 'HUF', 285.00000000, 'MNB', CURRENT_TIMESTAMP);
+
 
 
   INSERT INTO transactions

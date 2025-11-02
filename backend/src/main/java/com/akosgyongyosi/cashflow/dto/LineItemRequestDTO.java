@@ -1,11 +1,11 @@
 package com.akosgyongyosi.cashflow.dto;
 
+import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.Frequency;
 import com.akosgyongyosi.cashflow.entity.LineItemType;
 import lombok.Data;
 
 import java.math.BigDecimal;
-
 
 @Data
 public class LineItemRequestDTO {
@@ -17,4 +17,5 @@ public class LineItemRequestDTO {
     private Integer endMonth;
     private Long categoryId;
     private Double percentChange;
+    private Currency currency;
 }

@@ -1,18 +1,10 @@
 package com.akosgyongyosi.cashflow.service;
 
-import com.akosgyongyosi.cashflow.entity.BankAccount;
-import com.akosgyongyosi.cashflow.entity.CurrencyType;
-import com.akosgyongyosi.cashflow.entity.Transaction;
-import com.akosgyongyosi.cashflow.entity.TransactionCategory;
-import com.akosgyongyosi.cashflow.entity.TransactionDirection;
-import com.akosgyongyosi.cashflow.entity.TransactionMethod;
 import com.akosgyongyosi.cashflow.repository.BankAccountRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,7 +17,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CsvImportServiceTest {

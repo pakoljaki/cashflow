@@ -1,6 +1,9 @@
 package com.akosgyongyosi.cashflow.service.forecast.strategy;
 
-import com.akosgyongyosi.cashflow.entity.*;
+import com.akosgyongyosi.cashflow.entity.CashflowPlan;
+import com.akosgyongyosi.cashflow.entity.HistoricalTransaction;
+import com.akosgyongyosi.cashflow.entity.LineItemType;
+import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import com.akosgyongyosi.cashflow.service.forecast.ForecastStrategy;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +27,8 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
         for (HistoricalTransaction tx : plan.getBaselineTransactions()) {
             if (tx.getCategory() != null && tx.getCategory().equals(item.getCategory())) {
                 LocalDate txDate = tx.getTransactionDate();
-                if (!txDate.isBefore(startDate) && !txDate.isAfter(endDate)) {
+                if (!txDate.isBefore(startDate) && !txDate.isAfter(endDate) && !item.getIsApplied()) {
+                    item.setIsApplied(true);
                     BigDecimal adjusted = tx.getAmount().multiply(factor);
                     tx.setAmount(adjusted);
                 }

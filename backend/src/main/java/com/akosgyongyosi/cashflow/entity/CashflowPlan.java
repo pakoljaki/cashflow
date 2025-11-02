@@ -49,4 +49,8 @@ public class CashflowPlan {
     @OneToMany(mappedBy = "cashflowPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<HistoricalTransaction> baselineTransactions = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "base_currency", length = 3, nullable = false)
+    private Currency baseCurrency;  // functional currency for calculations
 }

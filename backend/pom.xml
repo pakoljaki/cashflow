@@ -109,6 +109,10 @@
 			<version>1.5.5.Final</version>
 			<scope>provided</scope> <!-- Needed for compilation but not at runtime -->
 		</dependency>
+		<dependency>
+  			<groupId>org.springframework.boot</groupId>
+ 			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

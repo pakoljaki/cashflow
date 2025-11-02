@@ -6,11 +6,13 @@ import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import com.akosgyongyosi.cashflow.entity.TransactionCategory;
 import com.akosgyongyosi.cashflow.entity.Frequency;
+import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.PlanLineItemRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.service.AssumptionIdGeneratorService;
 import com.akosgyongyosi.cashflow.service.forecast.CashflowCalculationService;
+import com.akosgyongyosi.cashflow.service.fx.PlanCurrencyResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -57,6 +59,10 @@ public class PlanLineItemController {
             lineItem.setPlan(plan);
             lineItem.setTitle(dto.getTitle());
             lineItem.setType(dto.getType());
+
+            // currency: if not provided, default to plan's functional currency
+            Currency itemCurrency = dto.getCurrency() != null ? dto.getCurrency() : PlanCurrencyResolver.resolve(plan);
+            lineItem.setCurrency(itemCurrency);
 
             switch (dto.getType()) {
                 case ONE_TIME:
@@ -150,6 +156,7 @@ public class PlanLineItemController {
         dto.setTransactionDate(item.getTransactionDate());
         dto.setPercentChange(item.getPercentChange());
         dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
+        dto.setCurrency(item.getCurrency());
         return dto;
     }
 }

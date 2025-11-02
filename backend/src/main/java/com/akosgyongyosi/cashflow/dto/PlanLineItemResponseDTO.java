@@ -2,7 +2,7 @@ package com.akosgyongyosi.cashflow.dto;
 
 import com.akosgyongyosi.cashflow.entity.Frequency;
 import com.akosgyongyosi.cashflow.entity.LineItemType;
-
+import com.akosgyongyosi.cashflow.entity.Currency;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,4 +25,5 @@ public class PlanLineItemResponseDTO {
     private Double percentChange;
     private LocalDate transactionDate;
     private String categoryName;
+    private Currency currency;
 }

@@ -1,6 +1,7 @@
 package com.akosgyongyosi.cashflow.service;
 
 import com.akosgyongyosi.cashflow.entity.*;
+import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,7 @@ public class CashflowPlanService {
         plan.setScenario(scenario);
         plan.setStartBalance(startBalance);
         plan.setBaselineTransactions(new ArrayList<>());
+        plan.setBaseCurrency(Currency.EUR); //TODO
 
         List<Transaction> lastYearTransactions = transactionRepository
                 .findByBookingDateBetween(start.minusYears(1), end.minusYears(1));
@@ -81,6 +83,7 @@ public class CashflowPlanService {
 
     private HistoricalTransaction convertTransactionToHistorical(Transaction tx, CashflowPlan plan) {
         HistoricalTransaction hist = new HistoricalTransaction();
+        // TODO: Convert the amount to plan base and store it as that (use AmountInBase or open FxConversionContext and call convert(...))
         hist.setTransactionDate(tx.getBookingDate().plusYears(1));
         hist.setAmount(tx.getAmount());
         hist.setCategory(tx.getCategory());

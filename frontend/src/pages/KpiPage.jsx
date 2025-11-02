@@ -64,7 +64,21 @@ export default function KpiPage() {
 
           {!loading && !error && kpiData && (
             <div className="kpi-content">
-              <div className="kpi-charts-left">
+              {/* 1) Full-width table */}
+              <div className="chart-card">
+                <MonthlyDataTable
+                  startBalance={kpiData.startBalance}
+                  monthlyData={kpiData.monthlyData}
+                />
+              </div>
+
+              {/* 2) Full-width bar chart */}
+              <div className="chart-card">
+                <MonthlyBarChart data={kpiData.monthlyData} />
+              </div>
+
+              {/* 3) Four pie charts in 2×2 grid */}
+              <div className="kpi-pie-grid">
                 <div className="chart-card">
                   <AccountingCategoryPieChart
                     data={kpiData.monthlyData}
@@ -92,17 +106,6 @@ export default function KpiPage() {
                     chartType="EXPENSE"
                     title="Transaction Expense"
                   />
-                </div>
-              </div>
-              <div className="kpi-charts-right">
-                <div className="chart-card">
-                  <MonthlyDataTable
-                    startBalance={kpiData.startBalance}
-                    monthlyData={kpiData.monthlyData}
-                  />
-                </div>
-                <div className="chart-card">
-                  <MonthlyBarChart data={kpiData.monthlyData} />
                 </div>
               </div>
             </div>

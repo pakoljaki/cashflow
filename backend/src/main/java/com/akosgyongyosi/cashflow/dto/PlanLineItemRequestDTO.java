@@ -2,7 +2,7 @@ package com.akosgyongyosi.cashflow.dto;
 
 import com.akosgyongyosi.cashflow.entity.Frequency;
 import com.akosgyongyosi.cashflow.entity.LineItemType;
-
+import com.akosgyongyosi.cashflow.entity.Currency;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,4 +24,5 @@ public class PlanLineItemRequestDTO {
     private LocalDate transactionDate;
     private Long categoryId;
     private Long assumptionId;
+    private Currency currency;
 }

@@ -1,0 +1,38 @@
+@startuml CashflowPlanner_HighLevel
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BackgroundColor #F9F9F9
+  BorderColor #666666
+}
+
+' ==== Clients ====
+actor User as "Browser\n(end-user)"
+
+' ==== Front-End ====
+component "React SPA\n(Vite • React 18)" as SPA
+database "Browser Storage\n(LocalStorage)" as LocalStorage #EEEEEE
+
+User --> SPA : HTTPS (TLS 1.3)\nPort 443
+SPA --> LocalStorage : JWT • Role • Prefs
+
+' ==== Back-End ====
+component "Spring Boot 3 API\n(Java 17)" as API
+component "Domain Core\n(DDD Aggregates)" as Domain
+component "Persistence Adapter\n(Spring Data JPA)" as Adapter
+database "MySQL 8.0\nInnoDB" as MySQL #EEEEEE
+
+SPA --> API : REST / JSON\nAuthorization: Bearer <jwt>
+API --> Domain : Commands\nDTO → Entity
+Domain --> Adapter : SavePort / LoadPort
+Adapter --> MySQL : JDBC • Flyway\n(read & write)
+
+' ==== Observability ====
+component "Prometheus\n+ Micrometer" as Prometheus #FFFFEE
+API -- Prometheus : scrape /actuator/prometheus\n(15 sec)
+
+' ==== Optional integrations (dashed) ====
+component "ECB FX-Rate Feed" as FX #DDDDFF
+FX ..> API : nightly\nREST pull
+
+@enduml

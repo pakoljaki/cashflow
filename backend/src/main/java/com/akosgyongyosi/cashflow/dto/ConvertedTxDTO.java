@@ -11,10 +11,10 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Data
-public class CreatePlanRequestDTO {
-    private String planName;
-    private LocalDate startDate;
-    private LocalDate endDate;
-    private BigDecimal startBalance;
-    private Currency baseCurrency;
+public class ConvertedTxDTO {
+    LocalDate date;
+    BigDecimal amountBase;       // amount in plan's base
+    Currency baseCurrency;           // == plan.getBaseCurrency()
+    Long categoryId;
+    Long accountId;
 }

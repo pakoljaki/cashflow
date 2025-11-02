@@ -1,7 +1,12 @@
 package com.akosgyongyosi.cashflow.service.forecast.strategy;
 
-import com.akosgyongyosi.cashflow.entity.*;
+import com.akosgyongyosi.cashflow.entity.CashflowPlan;
+import com.akosgyongyosi.cashflow.entity.Currency;
+import com.akosgyongyosi.cashflow.entity.HistoricalTransaction;
+import com.akosgyongyosi.cashflow.entity.LineItemType;
+import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import com.akosgyongyosi.cashflow.service.forecast.ForecastStrategy;
+import com.akosgyongyosi.cashflow.service.fx.FxConversionContext;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -20,21 +25,33 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
     @Override
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
         List<LocalDate> transactionDates = calculateRecurringDates(plan, item);
-        
+
+        if (!item.getIsApplied()) {
+            item.setIsApplied(true);
+        } else {
+            return;
+        }
+
+        BigDecimal nativeAmt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+        Currency fromCurrency = item.getCurrency() != null ? item.getCurrency() : FxConversionContext.base();
+
         for (LocalDate date : transactionDates) {
             HistoricalTransaction newTx = new HistoricalTransaction();
             newTx.setCashflowPlan(plan);
             newTx.setTransactionDate(date);
-            newTx.setAmount(item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO);
+
+            BigDecimal amountBase = FxConversionContext.convert(date, fromCurrency, nativeAmt);
+            newTx.setAmount(amountBase);
             newTx.setCategory(item.getCategory());
+
             plan.getBaselineTransactions().add(newTx);
         }
     }
 
     private List<LocalDate> calculateRecurringDates(CashflowPlan plan, PlanLineItem item) {
         List<LocalDate> dates = new ArrayList<>();
-        LocalDate startDate = plan.getStartDate();
-        LocalDate endDate = plan.getEndDate();
+        LocalDate startDate = item.getStartDate();
+        LocalDate endDate = item.getEndDate();
 
         switch (item.getFrequency()) {
             case WEEKLY:

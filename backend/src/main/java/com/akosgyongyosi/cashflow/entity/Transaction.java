@@ -46,7 +46,7 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CurrencyType currency;
+    private Currency currency;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)

@@ -4,6 +4,8 @@ import com.akosgyongyosi.cashflow.dto.CreatePlanRequestDTO;
 import com.akosgyongyosi.cashflow.dto.ScenarioPlanRequestDTO;
 import com.akosgyongyosi.cashflow.dto.MonthlyKpiDTO;
 import com.akosgyongyosi.cashflow.entity.CashflowPlan;
+import com.akosgyongyosi.cashflow.entity.Currency;
+import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.service.CashflowPlanService;
 import com.akosgyongyosi.cashflow.service.kpi.KpiCalculationService;
 import org.springframework.http.ResponseEntity;
@@ -20,37 +22,42 @@ public class CashflowPlanController {
 
     private final CashflowPlanService planService;
     private final KpiCalculationService kpiService;
+    private final CashflowPlanRepository planRepository;
 
     public CashflowPlanController(
             CashflowPlanService planService,
-            KpiCalculationService kpiService
+            KpiCalculationService kpiService,
+            CashflowPlanRepository planRepository
     ) {
         this.planService = planService;
         this.kpiService = kpiService;
+        this.planRepository = planRepository;
     }
 
     @PostMapping("/for-current-year")
-    public ResponseEntity<CashflowPlan> createPlanForCurrentYear(@RequestParam String planName) {
+    public ResponseEntity<CashflowPlan> createPlanForCurrentYear(@RequestParam String planName,
+                                                                 @RequestParam(required = false) Currency baseCurrency) {
         LocalDate start = LocalDate.now().withDayOfYear(1);
         LocalDate end   = LocalDate.now().withDayOfYear(start.lengthOfYear());
         String groupKey = UUID.randomUUID().toString();
         CashflowPlan plan = planService.createPlanForInterval(planName, start, end, groupKey);
+        plan.setBaseCurrency(baseCurrency != null ? baseCurrency : Currency.HUF);
+        plan = planRepository.save(plan);
         return ResponseEntity.ok(plan);
     }
 
     @PostMapping("/for-interval")
-    public ResponseEntity<CashflowPlan> createPlanForInterval(
-            @RequestBody CreatePlanRequestDTO request
-    ) {
+    public ResponseEntity<CashflowPlan> createPlanForInterval(@RequestBody CreatePlanRequestDTO request) {
         LocalDate start = request.getStartDate();
         LocalDate end   = request.getEndDate();
         if (request.getPlanName() == null || request.getPlanName().isBlank() || start.isAfter(end)) {
             return ResponseEntity.badRequest().build();
         }
         String groupKey = UUID.randomUUID().toString();
-        CashflowPlan plan = planService.createPlanForInterval(
-                request.getPlanName(), start, end, groupKey
-        );
+        CashflowPlan plan = planService.createPlanForInterval(request.getPlanName(), start, end, groupKey);
+        plan.setBaseCurrency(request.getBaseCurrency() != null ? request.getBaseCurrency() : Currency.HUF);
+        if (request.getStartBalance() != null) plan.setStartBalance(request.getStartBalance());
+        plan = planRepository.save(plan);
         return ResponseEntity.ok(plan);
     }
 
@@ -74,26 +81,25 @@ public class CashflowPlanController {
     }
 
     @PostMapping("/scenarios")
-    public ResponseEntity<List<CashflowPlan>> createScenarioPlans(
-            @RequestBody ScenarioPlanRequestDTO request
-    ) {
+    public ResponseEntity<List<CashflowPlan>> createScenarioPlans(@RequestBody ScenarioPlanRequestDTO request) {
         LocalDate start = request.getStartDate();
         LocalDate end   = request.getEndDate();
         if (start.isAfter(end)) return ResponseEntity.badRequest().build();
-        BigDecimal startingBalance = request.getStartBalance() != null
-                ? request.getStartBalance()
-                : BigDecimal.ZERO;
+        BigDecimal startingBalance = request.getStartBalance() != null ? request.getStartBalance() : BigDecimal.ZERO;
+
         List<CashflowPlan> threePlans = planService.createAllScenarioPlans(
-                request.getBasePlanName(),
-                start, end, startingBalance
+                request.getBasePlanName(), start, end, startingBalance
         );
+        Currency base = request.getBaseCurrency() != null ? request.getBaseCurrency() : Currency.HUF;
+        for (CashflowPlan p : threePlans) {
+            p.setBaseCurrency(base);
+            planRepository.save(p);
+        }
         return ResponseEntity.ok(threePlans);
     }
 
     @GetMapping("/{planId}/monthly-kpi")
-    public ResponseEntity<List<MonthlyKpiDTO>> getMonthlyKpi(
-            @PathVariable Long planId
-    ) {
+    public ResponseEntity<List<MonthlyKpiDTO>> getMonthlyKpi(@PathVariable Long planId) {
         var dashboard = kpiService.calculateForPlan(planId);
         if (dashboard == null) {
             return ResponseEntity.notFound().build();
