@@ -20,4 +20,12 @@ public class MonthlyKpiDTO {
     private Map<String, BigDecimal> accountingCategorySums = new HashMap<>();
     private Map<String, BigDecimal> transactionCategorySums = new HashMap<>();
     private Map<String, String> transactionCategoryDirections = new HashMap<>();
+    // FX metadata
+    private String rateDate; // ISO date (month-end) of applied FX rate
+    private String rateSource; // provider identifier
+    // Original base currency values preserved after conversion for dual display
+    private BigDecimal originalTotalIncome;
+    private BigDecimal originalTotalExpense;
+    private BigDecimal originalNetCashFlow;
+    private BigDecimal originalBankBalance;
 }

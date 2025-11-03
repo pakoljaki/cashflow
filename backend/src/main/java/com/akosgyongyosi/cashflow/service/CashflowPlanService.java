@@ -4,6 +4,8 @@ import com.akosgyongyosi.cashflow.entity.*;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
+import com.akosgyongyosi.cashflow.service.fx.FxService;
+import com.akosgyongyosi.cashflow.service.fx.FxRequestCache;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +18,14 @@ public class CashflowPlanService {
 
     private final CashflowPlanRepository planRepository;
     private final TransactionRepository transactionRepository;
+    private final FxService fxService;
     
     public CashflowPlanService(CashflowPlanRepository planRepository,
-                               TransactionRepository transactionRepository ) {
+                               TransactionRepository transactionRepository,
+                               FxService fxService) {
         this.planRepository = planRepository;
         this.transactionRepository = transactionRepository;
+        this.fxService = fxService;
     }
 
     public Optional<CashflowPlan> getPlan(Long planId) {
@@ -33,7 +38,7 @@ public class CashflowPlanService {
 
     @Transactional
     public CashflowPlan createPlanForInterval(String planName, LocalDate start, LocalDate end, String groupKey) {
-        return createPlanForInterval(planName, start, end, ScenarioType.REALISTIC, BigDecimal.ZERO, groupKey);
+        return doCreatePlan(planName, start, end, ScenarioType.REALISTIC, BigDecimal.ZERO, groupKey);
     }
 
     @Transactional
@@ -43,6 +48,16 @@ public class CashflowPlanService {
                                               ScenarioType scenario,
                                               BigDecimal startBalance,
                                               String groupKey) {
+        return doCreatePlan(planName, start, end, scenario, startBalance, groupKey);
+    }
+
+    // Internal helper avoids transactional self-invocation warning
+    private CashflowPlan doCreatePlan(String planName,
+                                      LocalDate start,
+                                      LocalDate end,
+                                      ScenarioType scenario,
+                                      BigDecimal startBalance,
+                                      String groupKey) {
         CashflowPlan plan = new CashflowPlan();
         plan.setPlanName(planName);
         plan.setStartDate(start);
@@ -51,16 +66,19 @@ public class CashflowPlanService {
         plan.setGroupKey(groupKey);
         plan.setScenario(scenario);
         plan.setStartBalance(startBalance);
-        plan.setBaselineTransactions(new ArrayList<>());
-        plan.setBaseCurrency(Currency.EUR); //TODO
+    plan.setBaselineTransactions(new ArrayList<>());
+    // For now default to HUF if any HUF transactions exist in prior year, else EUR. (Simple heuristic.)
+    Currency inferred = inferBaseCurrency(start, end);
+    plan.setBaseCurrency(inferred);
 
-        List<Transaction> lastYearTransactions = transactionRepository
-                .findByBookingDateBetween(start.minusYears(1), end.minusYears(1));
+    List<Transaction> lastYearTransactions = transactionRepository
+        .findByBookingDateBetween(start.minusYears(1), end.minusYears(1));
+    FxRequestCache cache = new FxRequestCache(fxService);
 
-        for (Transaction tx : lastYearTransactions) {
-            HistoricalTransaction hist = convertTransactionToHistorical(tx, plan);
-            plan.getBaselineTransactions().add(hist);
-        }
+    for (Transaction tx : lastYearTransactions) {
+        HistoricalTransaction hist = convertTransactionToHistorical(tx, plan, cache);
+        plan.getBaselineTransactions().add(hist);
+    }
 
         return planRepository.save(plan);
     }
@@ -69,9 +87,9 @@ public class CashflowPlanService {
     public List<CashflowPlan> createAllScenarioPlans(String basePlanName, LocalDate start, LocalDate end, BigDecimal startBalance) {
         String groupKey = UUID.randomUUID().toString(); 
 
-        CashflowPlan worst = createPlanForInterval(basePlanName + "-WORST", start, end, ScenarioType.WORST, startBalance, groupKey);
-        CashflowPlan real = createPlanForInterval(basePlanName + "-REALISTIC", start, end, ScenarioType.REALISTIC, startBalance, groupKey);
-        CashflowPlan best = createPlanForInterval(basePlanName + "-BEST", start, end, ScenarioType.BEST, startBalance, groupKey);
+    CashflowPlan worst = doCreatePlan(basePlanName + "-WORST", start, end, ScenarioType.WORST, startBalance, groupKey);
+    CashflowPlan real = doCreatePlan(basePlanName + "-REALISTIC", start, end, ScenarioType.REALISTIC, startBalance, groupKey);
+    CashflowPlan best = doCreatePlan(basePlanName + "-BEST", start, end, ScenarioType.BEST, startBalance, groupKey);
 
         return List.of(worst, real, best);
     }
@@ -81,15 +99,46 @@ public class CashflowPlanService {
         return planRepository.findByGroupKey(groupKey);
     }
 
-    private HistoricalTransaction convertTransactionToHistorical(Transaction tx, CashflowPlan plan) {
+    private HistoricalTransaction convertTransactionToHistorical(Transaction tx, CashflowPlan plan, FxRequestCache cache) {
         HistoricalTransaction hist = new HistoricalTransaction();
-        // TODO: Convert the amount to plan base and store it as that (use AmountInBase or open FxConversionContext and call convert(...))
         hist.setTransactionDate(tx.getBookingDate().plusYears(1));
-        hist.setAmount(tx.getAmount());
+        // Original details
+        hist.setOriginalAmount(tx.getAmount());
+        hist.setOriginalCurrency(tx.getCurrency());
+        // Convert to plan base currency if needed
+        BigDecimal normalized = tx.getCurrency() == plan.getBaseCurrency()
+                ? tx.getAmount()
+                : cache.convert(tx.getAmount(), tx.getCurrency(), plan.getBaseCurrency(), tx.getBookingDate());
+        hist.setAmount(normalized);
         hist.setCategory(tx.getCategory());
         hist.setCashflowPlan(plan);
         hist.setSnapshotDate(LocalDate.now());
         return hist;
+    }
+
+    private Currency inferBaseCurrency(LocalDate start, LocalDate end) {
+        List<Transaction> lastYear = transactionRepository.findByBookingDateBetween(start.minusYears(1), end.minusYears(1));
+        boolean hasHuf = lastYear.stream().anyMatch(t -> t.getCurrency() == Currency.HUF);
+        boolean hasEur = lastYear.stream().anyMatch(t -> t.getCurrency() == Currency.EUR);
+        // Prefer HUF if present (legacy default), else EUR, else USD fallback.
+        if (hasHuf) return Currency.HUF;
+        if (hasEur) return Currency.EUR;
+        return lastYear.stream().map(Transaction::getCurrency).findFirst().orElse(Currency.HUF);
+    }
+
+    @Transactional
+    public CashflowPlan regenerateBaseline(Long planId) {
+        CashflowPlan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new NoSuchElementException("Plan not found: " + planId));
+        // Clear existing baseline
+        plan.getBaselineTransactions().clear();
+        FxRequestCache cache = new FxRequestCache(fxService);
+        List<Transaction> lastYearTransactions = transactionRepository
+                .findByBookingDateBetween(plan.getStartDate().minusYears(1), plan.getEndDate().minusYears(1));
+        for (Transaction tx : lastYearTransactions) {
+            plan.getBaselineTransactions().add(convertTransactionToHistorical(tx, plan, cache));
+        }
+        return planRepository.save(plan);
     }
 
     @Transactional

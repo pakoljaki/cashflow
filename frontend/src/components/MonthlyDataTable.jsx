@@ -1,40 +1,72 @@
 import '../styles/monthlydatatable.css'
-import { amountFormatter } from '../utils/numberFormatter'
+import { formatAmount } from '../utils/numberFormatter'
+import PropTypes from 'prop-types'
+import DualAmount from './DualAmount'
+import { useCurrency } from '../context/CurrencyContext'
 
-export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] }) {
+export default function MonthlyDataTable({ startBalance = 0, originalStartBalance, baseCurrency = 'HUF', monthlyData = [] }) {
+  const { displayCurrency } = useCurrency()
   if (!monthlyData.length) return null
-
   const rows   = [...monthlyData].sort((a, b) => a.month - b.month)
   const months = rows.map(r => r.month)
 
   const categorySet = new Set()
-  rows.forEach(r =>
-    Object.keys(r.accountingCategorySums || {}).forEach(c =>
+  for (const r of rows) {
+    for (const c of Object.keys(r.accountingCategorySums || {})) {
       categorySet.add(c)
-    )
-  )
+    }
+  }
   const categories = Array.from(categorySet)
 
-  const incomes  = rows.map(r => Number(r.totalIncome))
-  const expenses = rows.map(r => Number(r.totalExpense))
+  const incomesConverted  = rows.map(r => Number(r.totalIncome))
+  const expensesConverted = rows.map(r => Number(r.totalExpense))
+  const incomesOriginal   = rows.map(r => Number(r.originalTotalIncome ?? r.totalIncome))
+  const expensesOriginal  = rows.map(r => Number(r.originalTotalExpense ?? r.totalExpense))
 
-  const openBalances = []
-  for (let i = 0; i < incomes.length; i++) {
+  const openBalancesConverted = []
+  const openBalancesOriginal  = []
+  for (let i = 0; i < incomesConverted.length; i++) {
     if (i === 0) {
-      openBalances[i] = Number(startBalance)
+      openBalancesConverted[i] = Number(startBalance)
+      openBalancesOriginal[i]  = Number(originalStartBalance ?? startBalance)
     } else {
-      openBalances[i] = openBalances[i - 1] + incomes[i - 1] - expenses[i - 1]
+      openBalancesConverted[i] = openBalancesConverted[i - 1] + incomesConverted[i - 1] - expensesConverted[i - 1]
+      openBalancesOriginal[i]  = openBalancesOriginal[i - 1] + incomesOriginal[i - 1] - expensesOriginal[i - 1]
     }
   }
 
-  const netFlows = incomes.map((inc, i) => inc - expenses[i])
-  const endBalances = openBalances.map((ob, i) => ob + netFlows[i])
+  const netFlowsConverted = incomesConverted.map((inc, i) => inc - expensesConverted[i])
+  const netFlowsOriginal  = incomesOriginal.map((inc, i) => inc - expensesOriginal[i])
+  const endBalancesConverted = openBalancesConverted.map((ob, i) => ob + netFlowsConverted[i])
+  const endBalancesOriginal  = openBalancesOriginal.map((ob, i) => ob + netFlowsOriginal[i])
 
-  const expenseCodes = ['COGS','OPEX','DEPR','TAX','FIN','OTHER_EXP','REPAY']
+  const expenseCodes = new Set(['COGS','OPEX','DEPR','TAX','FIN','OTHER_EXP','REPAY'])
+  const hasAnyOriginals = rows.some(r => r.originalTotalIncome != null || r.originalTotalExpense != null)
+  const isConverted = displayCurrency !== baseCurrency && hasAnyOriginals
+  const legacyMode = displayCurrency !== baseCurrency && !hasAnyOriginals
+
+  const buildTooltip = (rateDate, rateSource) => {
+    if (!rateDate) return 'Converted amount'
+    let tip = 'Rate date: ' + rateDate
+    if (rateSource) tip += ' (' + rateSource + ')'
+    return tip
+  }
 
   return (
     <div className="mdt-container">
+      {legacyMode && (
+        <div style={{ marginBottom:'0.35rem', fontSize:'0.65rem', color:'#666' }} role="note">
+          Legacy data: original currency amounts unavailable – showing converted values only.
+        </div>
+      )}
       <table className="mdt-table">
+        <caption style={{ captionSide:'top', textAlign:'left', fontSize:'0.65rem', padding:'0 0 4px 0' }}>
+          {(() => {
+            if (displayCurrency === baseCurrency) return (<span>Values shown in {baseCurrency} (plan base currency).</span>)
+            if (legacyMode) return (<span>Values shown in converted {displayCurrency} (original {baseCurrency} unavailable).</span>)
+            return (<span>Dual figures: bold is native {baseCurrency}; parentheses show converted {displayCurrency}.</span>)
+          })()}
+        </caption>
         <thead>
           <tr>
             <th>Item</th>
@@ -42,13 +74,44 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
               <th key={m}>{`M${m}`}</th>
             ))}
           </tr>
+          {isConverted && (
+            <tr className="mdt-subhead">
+              <th />
+              {months.map(m => (
+                <th key={`sub-${m}`}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 500 }}>
+                    {baseCurrency} → {displayCurrency}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          )}
         </thead>
         <tbody>
           <tr className="mdt-divider-bottom">
             <td>Open Balance</td>
-            {openBalances.map((val, i) => (
-              <td key={i}>{amountFormatter.format(val)}</td>
-            ))}
+            {openBalancesConverted.map((val, i) => {
+              const converted = val
+              const original = openBalancesOriginal[i]
+              const rateDate = rows[i]?.rateDate || rows[i-1]?.rateDate
+              const rateSource = rows[i]?.rateSource || rows[i-1]?.rateSource
+              const single = legacyMode || !isConverted || original === converted
+              const tooltip = buildTooltip(rateDate, rateSource)
+              return (
+                <td key={`open-${months[i]}`}>
+                  {single ? formatAmount(converted, { currency: displayCurrency }) : (
+                    <DualAmount dual={{
+                      single: false,
+                      nativeFormatted: formatAmount(original, { currency: baseCurrency }),
+                      convertedFormatted: formatAmount(converted, { currency: displayCurrency }),
+                      tooltip,
+                      displayCurrency,
+                      currency: baseCurrency,
+                    }} />
+                  )}
+                </td>
+              )
+            })}
           </tr>
           <tr className="mdt-row-divider">
             <td colSpan={months.length + 1} />
@@ -56,15 +119,14 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
           {categories.map(cat => (
             <tr key={cat}>
               <td>{cat}</td>
-              {rows.map((r, i) => {
-                let raw = Number(r.accountingCategorySums[cat] || 0)
-                if (expenseCodes.includes(cat)) raw = -Math.abs(raw)
-                const cls = raw < 0 ? 'mdt-negative' : 'mdt-positive'
+              {rows.map((r) => {
+                let rawConv = Number(r.accountingCategorySums[cat] || 0)
+                if (expenseCodes.has(cat)) rawConv = -Math.abs(rawConv)
+                // For now no original per category (needs backend support); show converted only.
+                const cls = rawConv < 0 ? 'mdt-negative' : 'mdt-positive'
                 return (
-                  <td key={i}>
-                    <span className={cls}>
-                      {amountFormatter.format(raw)}
-                    </span>
+                  <td key={`${cat}-${r.month}`}>
+                    <span className={cls}>{formatAmount(rawConv, { currency: displayCurrency })}</span>
                   </td>
                 )
               })}
@@ -75,42 +137,128 @@ export default function MonthlyDataTable({ startBalance = 0, monthlyData = [] })
           </tr>
           <tr>
             <td>Total Income</td>
-            {incomes.map((v, i) => (
-              <td key={i}>
-                <span className="mdt-positive">
-                  {amountFormatter.format(v)}
-                </span>
-              </td>
-            ))}
+            {incomesConverted.map((v, i) => {
+              const original = incomesOriginal[i]
+              const rateDate = rows[i]?.rateDate
+              const rateSource = rows[i]?.rateSource
+              const single = legacyMode || !isConverted || original === v
+              const tooltip = buildTooltip(rateDate, rateSource)
+              return (
+                <td key={`income-${months[i]}`}>
+                  {single ? (
+                    <span className="mdt-positive">{formatAmount(v, { currency: displayCurrency })}</span>
+                  ) : (
+                    <DualAmount dual={{
+                      single: false,
+                      nativeFormatted: formatAmount(original, { currency: baseCurrency }),
+                      convertedFormatted: formatAmount(v, { currency: displayCurrency }),
+                      tooltip,
+                      displayCurrency,
+                      currency: baseCurrency,
+                    }} />
+                  )}
+                </td>
+              )
+            })}
           </tr>
           <tr>
             <td>Total Expense</td>
-            {expenses.map((v, i) => (
-              <td key={i}>
-                <span className="mdt-negative">
-                  {amountFormatter.format(-v)}
-                </span>
-              </td>
-            ))}
+            {expensesConverted.map((v, i) => {
+              const original = expensesOriginal[i]
+              const rateDate = rows[i]?.rateDate
+              const rateSource = rows[i]?.rateSource
+              const single = legacyMode || !isConverted || original === v
+              const tooltip = buildTooltip(rateDate, rateSource)
+              return (
+                <td key={`expense-${months[i]}`}>
+                  {single ? (
+                    <span className="mdt-negative">{formatAmount(-v, { currency: displayCurrency })}</span>
+                  ) : (
+                    <DualAmount dual={{
+                      single: false,
+                      nativeFormatted: formatAmount(original, { currency: baseCurrency }),
+                      convertedFormatted: formatAmount(v, { currency: displayCurrency }),
+                      tooltip,
+                      displayCurrency,
+                      currency: baseCurrency,
+                    }} />
+                  )}
+                </td>
+              )
+            })}
           </tr>
           <tr>
             <td>Net Cash Flow</td>
-            {netFlows.map((v, i) => (
-              <td key={i}>
-                <span className={v < 0 ? 'mdt-negative' : 'mdt-positive'}>
-                  {amountFormatter.format(v)}
-                </span>
-              </td>
-            ))}
+            {netFlowsConverted.map((v, i) => {
+              const original = netFlowsOriginal[i]
+              const rateDate = rows[i]?.rateDate
+              const rateSource = rows[i]?.rateSource
+              const single = legacyMode || !isConverted || original === v
+              const tooltip = buildTooltip(rateDate, rateSource)
+              return (
+                <td key={`net-${months[i]}`}>
+                  {single ? (
+                    <span className={v < 0 ? 'mdt-negative' : 'mdt-positive'}>
+                      {formatAmount(v, { currency: displayCurrency })}
+                    </span>
+                  ) : (
+                    <DualAmount dual={{
+                      single: false,
+                      nativeFormatted: formatAmount(original, { currency: baseCurrency }),
+                      convertedFormatted: formatAmount(v, { currency: displayCurrency }),
+                      tooltip,
+                      displayCurrency,
+                      currency: baseCurrency,
+                    }} />
+                  )}
+                </td>
+              )
+            })}
           </tr>
           <tr className="mdt-divider-top">
             <td>End Balance</td>
-            {endBalances.map((v, i) => (
-              <td key={i}>{amountFormatter.format(v)}</td>
-            ))}
+            {endBalancesConverted.map((v, i) => {
+              const original = endBalancesOriginal[i]
+              const rateDate = rows[i]?.rateDate
+              const rateSource = rows[i]?.rateSource
+              const single = legacyMode || !isConverted || original === v
+              const tooltip = buildTooltip(rateDate, rateSource)
+              return (
+                <td key={`end-${months[i]}`}>
+                  {single ? formatAmount(v, { currency: displayCurrency }) : (
+                    <DualAmount dual={{
+                      single: false,
+                      nativeFormatted: formatAmount(original, { currency: baseCurrency }),
+                      convertedFormatted: formatAmount(v, { currency: displayCurrency }),
+                      tooltip,
+                      displayCurrency,
+                      currency: baseCurrency,
+                    }} />
+                  )}
+                </td>
+              )
+            })}
           </tr>
         </tbody>
       </table>
     </div>
   )
+}
+
+MonthlyDataTable.propTypes = {
+  startBalance: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  originalStartBalance: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  baseCurrency: PropTypes.string,
+  monthlyData: PropTypes.arrayOf(PropTypes.shape({
+    month: PropTypes.number,
+    totalIncome: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    totalExpense: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    accountingCategorySums: PropTypes.object,
+    rateDate: PropTypes.string,
+    rateSource: PropTypes.string,
+    originalTotalIncome: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    originalTotalExpense: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    originalNetCashFlow: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    originalBankBalance: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  })),
 }

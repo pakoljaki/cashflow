@@ -14,9 +14,12 @@ import {
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import '../styles/transactions.css'
-import { amountFormatter } from '../utils/numberFormatter'
+import { formatAmount } from '../utils/numberFormatter'
+import { useCurrency } from '../context/CurrencyContext'
+import DualAmount from '../components/DualAmount'
 
 export default function TransactionsPage() {
+  const { displayCurrency } = useCurrency()
   const [transactions, setTransactions] = useState([])
   const [selectedTransactionIds, setSelectedTransactionIds] = useState([])
   const [selectedDirection, setSelectedDirection] = useState(null)
@@ -70,15 +73,15 @@ export default function TransactionsPage() {
       },
       body: JSON.stringify({ transactionIds: selectedTransactionIds, categoryId: catId }),
     })
-    if (!res.ok) {
-      const txt = await res.text()
-      setMessage('Error: ' + txt)
-    } else {
+    if (res.ok) {
       setMessage('Category updated!')
       refreshTransactions()
       setSelectedTransactionIds([])
       setSelectedDirection(null)
+      return
     }
+    const txt = await res.text()
+    setMessage('Error: ' + txt)
   }
 
   const handleCreateCategory = async () => {
@@ -99,15 +102,15 @@ export default function TransactionsPage() {
       },
       body: JSON.stringify({ name: newCategoryName.trim(), direction: selectedDirection }),
     })
-    if (!res.ok) {
-      const txt = await res.text()
-      setMessage('Error: ' + txt)
-    } else {
+    if (res.ok) {
       const created = await res.json()
       setCategories([...categories, created])
       setNewCategoryName('')
       setMessage('New category created!')
+      return
     }
+    const txt = await res.text()
+    setMessage('Error: ' + txt)
   }
 
   const refreshTransactions = async () => {
@@ -163,6 +166,25 @@ export default function TransactionsPage() {
                 const isSelected = selectedTransactionIds.includes(tx.id)
                 const isPos = tx.transactionDirection === 'POSITIVE'
                 const sign = isPos ? '+' : '–'
+                // Inline dual amount logic (avoid hook inside map until backend enriches data)
+                const same = tx.currency === displayCurrency || tx.convertedAmount == null
+                const nativeFormatted = formatAmount(tx.amount, { currency: tx.currency })
+                let dual = { single: true, nativeFormatted }
+                if (!same) {
+                  let tooltip = 'Converted amount'
+                  if (tx.rateDate) {
+                    tooltip = 'Rate date: ' + tx.rateDate
+                    if (tx.rateSource) tooltip += ' (' + tx.rateSource + ')'
+                  }
+                  dual = {
+                    single: false,
+                    nativeFormatted,
+                    convertedFormatted: formatAmount(tx.convertedAmount, { currency: displayCurrency }),
+                    tooltip,
+                    displayCurrency,
+                    currency: tx.currency,
+                  }
+                }
                 return (
                   <TableRow
                     key={tx.id}
@@ -177,7 +199,7 @@ export default function TransactionsPage() {
                         fontWeight: 'bold',
                       }}
                     >
-                      {sign}{amountFormatter.format(tx.amount)}
+                      <DualAmount dual={dual} sign={sign} />
                     </TableCell>
                     <TableCell>{tx.currency}</TableCell>
                     <TableCell>{tx.partnerName || 'N/A'}</TableCell>

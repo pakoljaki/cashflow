@@ -28,18 +28,35 @@ public class KpiDisplayCurrencyConverter {
 
         FxRequestCache cache = new FxRequestCache(fxService);
 
-        LocalDate startConvDate = periodStart.minusDays(1);
-        src.setStartBalance(cache.convert(src.getStartBalance(), base, display, startConvDate));
+    LocalDate startConvDate = periodStart.minusDays(1);
+    // Preserve original start balance
+    src.setOriginalStartBalance(src.getStartBalance());
+    src.setStartBalanceRateDate(startConvDate.toString());
+    // Provider fallback (should match ingestion provider); adjust if dynamic provider added
+    src.setStartBalanceRateSource("ECB/Frankfurter");
+    src.setBaseCurrency(base.name());
+    src.setDisplayCurrency(display.name());
+    src.setStartBalance(cache.convert(src.getStartBalance(), base, display, startConvDate));
 
         int year = periodStart.getYear();
         for (MonthlyKpiDTO m : src.getMonthlyData()) {
             LocalDate monthStart = LocalDate.of(year, m.getMonth(), 1);
             LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
 
-            m.setTotalIncome(cache.convert(m.getTotalIncome(), base, display, monthEnd));
-            m.setTotalExpense(cache.convert(m.getTotalExpense(), base, display, monthEnd));
-            m.setNetCashFlow(cache.convert(m.getNetCashFlow(), base, display, monthEnd));
-            m.setBankBalance(cache.convert(m.getBankBalance(), base, display, monthEnd));
+            // Capture rates used per field for metadata (client may show tooltips)
+            // Using a lightweight map; MonthlyKpiDTO should expose a metadata map accessor if added.
+            var rateDate = monthEnd; // chosen rate evaluation date (end of month)
+            m.setOriginalTotalIncome(m.getTotalIncome());
+            m.setOriginalTotalExpense(m.getTotalExpense());
+            m.setOriginalNetCashFlow(m.getNetCashFlow());
+            m.setOriginalBankBalance(m.getBankBalance());
+            m.setRateDate(rateDate.toString());
+            // Provider fallback
+            m.setRateSource("ECB/Frankfurter");
+            m.setTotalIncome(cache.convert(m.getTotalIncome(), base, display, rateDate));
+            m.setTotalExpense(cache.convert(m.getTotalExpense(), base, display, rateDate));
+            m.setNetCashFlow(cache.convert(m.getNetCashFlow(), base, display, rateDate));
+            m.setBankBalance(cache.convert(m.getBankBalance(), base, display, rateDate));
 
             convertMap(m.getAccountingCategorySums(), base, display, monthEnd, cache);
             convertMap(m.getTransactionCategorySums(), base, display, monthEnd, cache);

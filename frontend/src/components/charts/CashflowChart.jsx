@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react'
-import { Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material'
+import { Box, FormControl, InputLabel, Select, MenuItem, Typography } from '@mui/material'
+import CurrencySelect from '../CurrencySelect'
+import { useCurrency } from '../../context/CurrencyContext'
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -12,9 +14,10 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts'
-import { amountFormatter } from '../../utils/numberFormatter'
+import { formatAmount } from '../../utils/numberFormatter'
 
 export default function CashflowChart({ monthlyData = [] }) {
+  const { displayCurrency, setDisplayCurrency } = useCurrency()
   const [selectedScenario, setSelectedScenario] = useState('REALISTIC')
   const directions = useMemo(() => monthlyData[0]?.directions || {}, [monthlyData])
   const categories = useMemo(() => monthlyData[0]?.categories || [], [monthlyData])
@@ -44,18 +47,31 @@ export default function CashflowChart({ monthlyData = [] }) {
 
   return (
     <Box>
-      <FormControl variant="outlined" size="small" sx={{ mb: 2, minWidth: 200 }}>
-        <InputLabel>Scenario</InputLabel>
-        <Select
-          value={selectedScenario}
-          label="Scenario"
-          onChange={e => setSelectedScenario(e.target.value)}
-        >
-          <MenuItem value="REALISTIC">Realistic</MenuItem>
-          <MenuItem value="WORST">Worst</MenuItem>
-          <MenuItem value="BEST">Best</MenuItem>
-        </Select>
-      </FormControl>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+        <FormControl variant="outlined" size="small" sx={{ minWidth: 160 }}>
+          <InputLabel>Scenario</InputLabel>
+          <Select
+            value={selectedScenario}
+            label="Scenario"
+            onChange={e => setSelectedScenario(e.target.value)}
+          >
+            <MenuItem value="REALISTIC">Realistic</MenuItem>
+            <MenuItem value="WORST">Worst</MenuItem>
+            <MenuItem value="BEST">Best</MenuItem>
+          </Select>
+        </FormControl>
+        <CurrencySelect
+          label="Display Currency"
+          value={displayCurrency}
+          onChange={setDisplayCurrency}
+          size="small"
+          sx={{ minWidth: 160 }}
+          helperText="For chart & tooltip amounts"
+        />
+        <Typography variant="caption" color="text.secondary">
+          Showing amounts in {displayCurrency}
+        </Typography>
+      </Box>
 
       <ResponsiveContainer width="100%" height={400}>
         <ComposedChart
@@ -70,20 +86,22 @@ export default function CashflowChart({ monthlyData = [] }) {
             yAxisId="left"
             orientation="left"
             domain={['auto','auto']}
-            tickFormatter={val => amountFormatter.format(val)}
+            tickFormatter={val => formatAmount(val)}
             tick={{ fontSize: 12 }}
-            width={40}
+            width={50}
+            label={{ value: displayCurrency, angle: -90, position: 'insideLeft', fontSize: 10 }}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
             domain={['auto','auto']}
-            tickFormatter={val => amountFormatter.format(val)}
+            tickFormatter={val => formatAmount(val)}
             tick={{ fontSize: 12 }}
-            width={40}
+            width={50}
+            label={{ value: displayCurrency, angle: 90, position: 'insideRight', fontSize: 10 }}
           />
           <Tooltip
-            formatter={(value, name) => [amountFormatter.format(value), name]}
+            formatter={(value, name) => [formatAmount(value), name]}
           />
           <Legend layout="horizontal" verticalAlign="bottom" wrapperStyle={{ paddingTop: 20 }} />
           {categories.map((cat, i) => (

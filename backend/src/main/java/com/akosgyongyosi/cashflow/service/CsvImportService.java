@@ -59,7 +59,7 @@ public class CsvImportService {
                  .filter(p -> !p.getFileName().toString().contains("-processed"))
                  .forEach(this::processFile);
         } catch (IOException e) {
-            throw new RuntimeException("Error scanning CSV directory " + dir, e);
+            throw new CsvImportException("Error scanning CSV directory " + dir, e);
         }
     }
 
@@ -73,7 +73,7 @@ public class CsvImportService {
             log.info("✓ {} transactions imported from {}", saved, fileName);
             renameAsProcessed(file);
         } catch (IOException e) {
-            throw new RuntimeException("Error reading " + file, e);
+            throw new CsvImportException("Error reading " + file, e);
         }
     }
 
@@ -88,18 +88,35 @@ public class CsvImportService {
             int saved = parseCsv(reader, fileCurrency);
             log.info("✓ {} transactions imported from upload {}", saved, originalFilename);
         } catch (IOException e) {
-            throw new RuntimeException("Error parsing uploaded CSV " + originalFilename, e);
+            log.error("IOException during CSV parsing: {}", e.getMessage(), e);
+            throw new CsvImportException("Error parsing uploaded CSV " + originalFilename, e);
+        } catch (Exception e) {
+            log.error("Unexpected error during CSV import: {}", e.getMessage(), e);
+            throw new CsvImportException("Error importing CSV " + originalFilename, e);
         }
     }
 
     private int parseCsv(BufferedReader reader, Currency fileCurrency) throws IOException {
         int recordCount = 0;
 
-        try (CSVParser parser = new CSVParser(reader,
-                CSVFormat.DEFAULT.withDelimiter(CSV_DELIMITER))) {
-
-            for (CSVRecord record : parser) {
-                Transaction tx = mapToTransaction(record, fileCurrency);
+        CSVFormat fmt = CSVFormat.Builder.create(CSVFormat.DEFAULT)
+                .setDelimiter(CSV_DELIMITER)
+                .build();
+        try (CSVParser parser = new CSVParser(reader, fmt)) {
+            for (CSVRecord rec : parser) {
+                String first = rec.get(0);
+                if (first != null) first = first.trim();
+                // Skip potential header (non-date first cell)
+                if (first == null || first.isBlank()) {
+                    continue; // empty line
+                }
+                if (!first.matches("\\d{4}\\.\\d{2}\\.\\d{2}")) {
+                    // Treat as header ONLY if record number == 1 and contains non-date text
+                    if (rec.getRecordNumber() == 1) {
+                        continue; // header row
+                    }
+                }
+                Transaction tx = mapToTransaction(rec, fileCurrency);
                 if (tx != null) {
                     transactionRepository.save(tx);
                     recordCount++;
@@ -111,20 +128,22 @@ public class CsvImportService {
 
     private Transaction mapToTransaction(CSVRecord r, Currency fileCurrency) {
         try {
-            LocalDate bookingDate = LocalDate.parse(r.get(0), DATE_FMT);
-            LocalDate valueDate   = LocalDate.parse(r.get(1), DATE_FMT);
-            String ourAcctNum     = r.get(2);
-            String partnerName    = r.get(3);
-            String partnerAcct    = r.get(4);
-            BigDecimal amount     = parseAmount(r.get(5));
+            LocalDate bookingDate = LocalDate.parse(r.get(0).trim(), DATE_FMT);
+            LocalDate valueDate   = LocalDate.parse(r.get(1).trim(), DATE_FMT);
+            String ourAcctNum     = r.get(2).trim();
+            String partnerName    = r.get(3).trim();
+            String partnerAcct    = r.get(4).trim();
+            BigDecimal amount     = parseAmount(r.get(5).trim());
             TransactionDirection direction =
                     "T".equalsIgnoreCase(r.get(6)) ? TransactionDirection.NEGATIVE
                                                    : TransactionDirection.POSITIVE;
             String transactionCode = r.get(7);
             String memo = r.size() > 8 ? r.get(8) : "";
+            // Optional currency override column (index 9)
+            Currency rowCurrency = resolveRowCurrency(r, fileCurrency);
 
-            BankAccount ourAccount = findOrCreateBankAccount(ourAcctNum, "Our Company",
-                                                             fileCurrency, null);
+            // Use helper (non transactional private) to create/find bank account
+            BankAccount ourAccount = findOrCreateBankAccount(ourAcctNum, "Our Company", rowCurrency, null);
             if (ourAccount == null) {
                 log.warn("Skipping line (empty ourAccountNumber): {}", r);
                 return null;
@@ -140,15 +159,21 @@ public class CsvImportService {
                 amount = amount.abs();
             }
             tx.setAmount(amount);
-            tx.setCurrency(fileCurrency);
+            tx.setCurrency(rowCurrency);
             tx.setTransactionDirection(direction);
             tx.setTransactionCode(transactionCode);
             tx.setMemo(memo);
             tx.setTransactionMethod(TransactionMethod.TRANSFER);
 
-            categoryRepository.findByName(memo)
-                              .ifPresentOrElse(tx::setCategory,
-                                               () -> tx.setCategory(assignUnassignedCategory(direction)));
+            // Try to match category by memo, but don't fail if not found
+            try {
+                categoryRepository.findByName(memo)
+                    .ifPresentOrElse(tx::setCategory,
+                        () -> tx.setCategory(assignUnassignedCategory(direction)));
+            } catch (Exception e) {
+                log.warn("Failed to assign category for memo '{}', using unassigned: {}", memo, e.getMessage());
+                tx.setCategory(assignUnassignedCategory(direction));
+            }
 
             return tx;
 
@@ -162,7 +187,9 @@ public class CsvImportService {
         return new BigDecimal(raw.replace(",", "."));
     }
 
-    @Transactional
+    // Removed @Transactional (private helper)
+    // Finds existing bank account or creates new one. If existing account has different currency,
+    // uses the existing account's currency (database is authoritative).
     private BankAccount findOrCreateBankAccount(String accountNumber,
                                                 String owner,
                                                 Currency currency,
@@ -170,28 +197,71 @@ public class CsvImportService {
         if (accountNumber == null || accountNumber.isBlank()) {
             return null;
         }
-        return bankAccountRepository.findByAccountNumber(accountNumber)
-                   .orElseGet(() -> {
-                       BankAccount b = new BankAccount();
-                       b.setAccountNumber(accountNumber);
-                       b.setOwner(owner);
-                       b.setBankName(bankName);
-                       b.setCurrency(currency);
-                       return bankAccountRepository.save(b);
-                   });
+        try {
+            return bankAccountRepository.findByAccountNumber(accountNumber)
+                       .map(existing -> {
+                           // Bank account already exists - use it as-is
+                           // Log warning if currency differs from CSV
+                           if (existing.getCurrency() != currency) {
+                               log.warn("Bank account {} exists with currency {}, CSV specified {}. Using existing account.",
+                                   accountNumber, existing.getCurrency(), currency);
+                           }
+                           return existing;
+                       })
+                       .orElseGet(() -> {
+                           // Create new bank account
+                           BankAccount b = new BankAccount();
+                           b.setAccountNumber(accountNumber);
+                           b.setOwner(owner);
+                           b.setBankName(bankName);
+                           b.setCurrency(currency);
+                           log.info("Creating new bank account: {} [{}]", accountNumber, currency);
+                           return bankAccountRepository.save(b);
+                       });
+        } catch (Exception e) {
+            log.error("Error finding/creating bank account {}: {}", accountNumber, e.getMessage());
+            throw e;
+        }
     }
 
-    @Transactional
+    // Removed @Transactional (private helper)
     private TransactionCategory assignUnassignedCategory(TransactionDirection dir) {
         String name = "Unassigned(" + dir.name() + ")";
-        return categoryRepository.findByName(name)
-                .orElseGet(() -> {
-                    TransactionCategory c = new TransactionCategory();
-                    c.setName(name);
-                    c.setDirection(dir);
-                    c.setDescription("Auto‑created unassigned category for " + dir);
-                    return categoryRepository.save(c);
-                });
+        try {
+            return categoryRepository.findByName(name)
+                    .orElseGet(() -> {
+                        TransactionCategory c = new TransactionCategory();
+                        c.setName(name);
+                        c.setDirection(dir);
+                        c.setDescription("Auto‑created unassigned category for " + dir);
+                        return categoryRepository.save(c);
+                    });
+        } catch (Exception e) {
+            log.error("Error finding/creating unassigned category: {}", e.getMessage());
+            // Try to find it again in case it was created by another thread
+            return categoryRepository.findByName(name)
+                    .orElseThrow(() -> new RuntimeException("Cannot create unassigned category", e));
+        }
+    }
+
+    private Currency resolveRowCurrency(CSVRecord r, Currency fileCurrency) {
+        if (r.size() <= 9) return fileCurrency;
+        String rawCur = r.get(9);
+        if (rawCur == null || rawCur.isBlank()) return fileCurrency;
+        String norm = rawCur.trim().toUpperCase(Locale.ROOT);
+        try {
+            return Currency.valueOf(norm);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Unknown currency '{}' in CSV line; falling back to file currency {}", rawCur, fileCurrency);
+            return fileCurrency;
+        }
+    }
+
+    // Custom exception wrapping IO issues during CSV import
+    public static class CsvImportException extends RuntimeException {
+        public CsvImportException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     private Currency parseCurrencyFromFilename(String filename) {

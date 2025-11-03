@@ -7,7 +7,7 @@ import {
   Cell,
   Legend
 } from 'recharts'
-import { amountFormatter } from '../utils/numberFormatter'
+import { formatAmount } from '../utils/numberFormatter'
 
 const COLORS = [
   '#0088FE','#00C49F','#FFBB28','#FF8042',
@@ -69,7 +69,7 @@ export default function TransactionCategoryPieChart({ data, chartType, title }) 
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={v => amountFormatter.format(v)} />
+          <Tooltip formatter={v => formatAmount(v)} />
           <Legend
             layout="horizontal"
             verticalAlign="bottom"

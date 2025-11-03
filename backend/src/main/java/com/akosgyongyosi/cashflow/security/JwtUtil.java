@@ -16,16 +16,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
 
-    private final Key SECRET_KEY = Keys.hmacShaKeyFor(
+    private static final Key secretKey = Keys.hmacShaKeyFor(
         Decoders.BASE64.decode("8Abw2RxHm3uTmf9GsDXnf4leMVJA0u7sBw4VHrwlCyo=")
     );
-
-    private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 hours
+    private static final long EXPIRATION_TIME_MS = 1000L * 60 * 60 * 10; // 10 hours
 
     public String generateToken(UserDetails userDetails) {
         List<String> roleNames = userDetails.getAuthorities().stream()
@@ -36,9 +34,11 @@ public class JwtUtil {
     }
 
     public String generateToken(String email, Set<Role> roles) {
+        // Ensure consistency with Spring Security's ROLE_ prefix expectations
+        // so that both hasRole("ADMIN") and hasAuthority("ROLE_ADMIN") checks succeed.
         List<String> roleNames = roles.stream()
-            .map(Enum::name)
-            .collect(Collectors.toList());
+            .map(r -> "ROLE_" + r.name())
+            .toList();
         return buildToken(email, roleNames);
     }
 
@@ -51,14 +51,14 @@ public class JwtUtil {
             .setClaims(claims)
             .setSubject(subject)
             .setIssuedAt(new Date(now))
-            .setExpiration(new Date(now + EXPIRATION_TIME))
-            .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
+            .setExpiration(new Date(now + EXPIRATION_TIME_MS))
+        .signWith(secretKey, SignatureAlgorithm.HS256)
             .compact();
     }
 
     public Claims parseToken(String token) {
         return Jwts.parserBuilder()
-            .setSigningKey(SECRET_KEY)
+        .setSigningKey(secretKey)
             .build()
             .parseClaimsJws(token)
             .getBody();

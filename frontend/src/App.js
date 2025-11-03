@@ -1,18 +1,22 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MyNavBar from './components/MyNavBar';
+import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
 import HomePage from './pages/HomePage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import CsvUpload from './pages/CsvUpload';
 import TransactionsPage from './pages/TransactionsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminFxSettingsPage from './pages/AdminFxSettingsPage';
 import CashflowPlansPage from './pages/CashflowPlansPage';
 import ScenarioGroupLineItemsPage from './pages/ScenarioGroupLineItemsPage';
 import KpiPage from './pages/KpiPage';
 import CategoryMappingPage from './pages/CategoryMappingPage';
 
-function App() {
+function AppInner() {
+  const { roles } = useCurrency()
+  const isAdmin = roles.includes('ROLE_ADMIN')
   return (
     <Router>
       <MyNavBar />
@@ -21,8 +25,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/admin/csv-upload" element={<CsvUpload />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/csv-upload" element={isAdmin ? <CsvUpload /> : <h2>403: Forbidden</h2>} />
+          <Route path="/admin/dashboard" element={isAdmin ? <AdminDashboard /> : <h2>403: Forbidden</h2>} />
+          <Route path="/admin/fx-settings" element={isAdmin ? <AdminFxSettingsPage /> : <h2>403: Forbidden</h2>} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/cashflow-plans" element={<CashflowPlansPage />} />
           <Route path="/scenario-group/:groupKey" element={<ScenarioGroupLineItemsPage />} />
@@ -32,7 +37,15 @@ function App() {
         </Routes>
       </div>
     </Router>
-  );
+  )
+}
+
+function App() {
+  return (
+    <CurrencyProvider>
+      <AppInner />
+    </CurrencyProvider>
+  )
 }
 
 export default App;

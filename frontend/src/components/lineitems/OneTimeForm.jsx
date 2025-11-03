@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import PropTypes from 'prop-types'
+import CurrencySelect from '../CurrencySelect'
+import { useCurrency } from '../../context/CurrencyContext'
 import {
   Box,
   Typography,
@@ -14,7 +17,7 @@ import {
   Paper,
   InputAdornment
 } from '@mui/material'
-import { amountFormatter } from '../../utils/numberFormatter'
+import { formatAmount } from '../../utils/numberFormatter'
 
 export default function OneTimeForm({ plans, onSuccess }) {
   const scenarios = ['WORST', 'REALISTIC', 'BEST']
@@ -29,6 +32,8 @@ export default function OneTimeForm({ plans, onSuccess }) {
     scenarios.reduce((acc, s) => ({ ...acc, [s]: { active: false, amount: '' } }), {})
   )
   const [message, setMessage] = useState('')
+  const { basePlanCurrency } = useCurrency()
+  const [currency, setCurrency] = useState(basePlanCurrency || 'HUF')
 
   useEffect(() => {
     fetch('/api/categories', {
@@ -60,9 +65,10 @@ export default function OneTimeForm({ plans, onSuccess }) {
       const body = {
         title: title.trim(),
         type: 'ONE_TIME',
-        amount: parseFloat(scenarioData[sc].amount) || 0,
+        amount: Number.parseFloat(scenarioData[sc].amount) || 0,
         transactionDate,
-        categoryId: selectedCategoryId || null
+        categoryId: selectedCategoryId || null,
+        currency
       }
       if (sharedId) body.assumptionId = sharedId
       const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
@@ -75,12 +81,12 @@ export default function OneTimeForm({ plans, onSuccess }) {
       })
       if (resp.ok) {
         const item = await resp.json()
-        if (!sharedId) sharedId = item.assumptionId
+        if (!sharedId) sharedId = item?.assumptionId
         count++
       }
     }
     setMessage(`Created for ${count} scenario(s).`)
-    onSuccess && onSuccess()
+  onSuccess?.()
   }
 
   return (
@@ -96,7 +102,7 @@ export default function OneTimeForm({ plans, onSuccess }) {
       <TextField
         label="Date"
         type="date"
-        InputLabelProps={{ shrink: true }}
+        slotProps={{ inputLabel: { shrink: true } }}
         value={transactionDate}
         onChange={e => setTransactionDate(e.target.value)}
         fullWidth
@@ -145,7 +151,14 @@ export default function OneTimeForm({ plans, onSuccess }) {
           </Button>
         </Paper>
       )}
-      <Typography variant="subtitle1">Scenarios</Typography>
+      <CurrencySelect
+        label="Currency"
+        value={currency}
+        onChange={setCurrency}
+        helperText="Currency for these one-time amounts"
+        sx={{ maxWidth: 220 }}
+      />
+      <Typography variant="subtitle1" sx={{ mt: 2 }}>Scenarios</Typography>
       <FormGroup>
         {scenarios.map(s => (
           <Box key={s} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -167,12 +180,10 @@ export default function OneTimeForm({ plans, onSuccess }) {
               onChange={e => handleAmountChange(s, e.target.value)}
               helperText={
                 scenarioData[s].amount
-                  ? amountFormatter.format(Number(scenarioData[s].amount))
+                  ? formatAmount(Number(scenarioData[s].amount), { currency })
                   : ''
               }
-              InputProps={{
-                startAdornment: <InputAdornment position="start">HUF</InputAdornment>
-              }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> } }}
             />
           </Box>
         ))}
@@ -182,4 +193,9 @@ export default function OneTimeForm({ plans, onSuccess }) {
       </Button>
     </Box>
   )
+}
+
+OneTimeForm.propTypes = {
+  plans: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.number, scenario: PropTypes.string })).isRequired,
+  onSuccess: PropTypes.func,
 }

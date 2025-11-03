@@ -7,13 +7,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,8 +25,24 @@ public class HistoricalTransaction {
     private Long id;
 
     private LocalDate transactionDate;
-    
+
+    /**
+     * Amount expressed in the plan's base currency (normalized value used for KPI math).
+     */
     private BigDecimal amount;
+
+    /**
+     * Original raw amount from the source transaction before conversion.
+     */
+    @Column(name = "original_amount", precision = 18, scale = 4)
+    private BigDecimal originalAmount;
+
+    /**
+     * Original currency of the source transaction; enables audit / re‑conversion if FX changes.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "original_currency", length = 3)
+    private Currency originalCurrency;
     
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -48,5 +58,10 @@ public class HistoricalTransaction {
     @JsonProperty("category")
     public String getCategoryName() { 
         return category != null ? category.getName() : "Uncategorized";
+    }
+
+    @JsonProperty("originalCurrency")
+    public String getOriginalCurrencyCode() {
+        return originalCurrency != null ? originalCurrency.name() : null;
     }
 }

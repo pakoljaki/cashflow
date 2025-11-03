@@ -22,20 +22,65 @@ class TransactionServiceTest {
     @InjectMocks
     private TransactionService service;
 
-    /*@Test
-    void getAllTransactions_returnsListFromRepository() {
+    @Test
+    void getAllTransactions_shouldReturnAllTransactionsFromRepository() {
         Transaction t1 = new Transaction();
+        t1.setId(1L);
         Transaction t2 = new Transaction();
+        t2.setId(2L);
         when(transactionRepository.findAll()).thenReturn(List.of(t1, t2));
+
         List<Transaction> result = service.getAllTransactions();
-        assertThat(result).containsExactly(t1, t2);
+
+        assertThat(result)
+            .hasSize(2)
+            .containsExactly(t1, t2);
         verify(transactionRepository).findAll();
     }
 
     @Test
-    void saveTransaction_callsRepositorySave() {
+    void getAllTransactions_shouldReturnEmptyListWhenNoTransactions() {
+        when(transactionRepository.findAll()).thenReturn(List.of());
+
+        List<Transaction> result = service.getAllTransactions();
+
+        assertThat(result).isEmpty();
+        verify(transactionRepository).findAll();
+    }
+
+    @Test
+    void saveTransaction_shouldCallRepositorySave() {
         Transaction tx = new Transaction();
+        tx.setId(1L);
+
         service.saveTransaction(tx);
+
         verify(transactionRepository).save(tx);
-    }*/
+    }
+
+    @Test
+    void saveTransaction_shouldHandleNewTransaction() {
+        Transaction tx = new Transaction();
+        // No ID set - new transaction
+
+        service.saveTransaction(tx);
+
+        verify(transactionRepository).save(tx);
+    }
+
+    @Test
+    void getAllTransactions_shouldHandleLargeList() {
+        List<Transaction> largeList = new java.util.ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            Transaction t = new Transaction();
+            t.setId((long) i);
+            largeList.add(t);
+        }
+        when(transactionRepository.findAll()).thenReturn(largeList);
+
+        List<Transaction> result = service.getAllTransactions();
+
+        assertThat(result).hasSize(100);
+        verify(transactionRepository).findAll();
+    }
 }

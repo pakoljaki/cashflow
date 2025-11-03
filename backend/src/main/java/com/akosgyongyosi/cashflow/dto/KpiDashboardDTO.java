@@ -1,8 +1,6 @@
 package com.akosgyongyosi.cashflow.dto;
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import lombok.Data;
 import lombok.Getter;
@@ -19,4 +17,10 @@ public class KpiDashboardDTO {
     private BigDecimal ebitda = BigDecimal.ZERO;
     private BigDecimal ebit = BigDecimal.ZERO;
     private BigDecimal profitMargin = BigDecimal.ZERO;
+    // FX metadata for dashboard-level conversions
+    private String baseCurrency; // canonical/base currency
+    private String displayCurrency; // target display currency if conversion performed
+    private String startBalanceRateDate; // rate date used for start balance conversion
+    private String startBalanceRateSource; // provider for start balance conversion
+    private BigDecimal originalStartBalance; // original base start balance for dual display
 }

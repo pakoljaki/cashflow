@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import PropTypes from 'prop-types'
 import { useParams } from 'react-router-dom'
 import {
   Box,
@@ -19,36 +20,44 @@ import RecurringForm from '../components/lineitems/RecurringForm'
 import CategoryForm from '../components/lineitems/CategoryForm'
 import CashflowChart from '../components/charts/CashflowChart'
 import MonthlyDataTable from '../components/MonthlyDataTable'
-import { amountFormatter } from '../utils/numberFormatter'
+import { formatAmount } from '../utils/numberFormatter'
+import CurrencyBadge from '../components/CurrencyBadge'
+import { useCurrency } from '../context/CurrencyContext'
 
 export default function ScenarioGroupLineItemsPage() {
   const { groupKey } = useParams()
+  const { setBasePlanCurrency, displayCurrency } = useCurrency()
   const [plans, setPlans] = useState([])
   const [message, setMessage] = useState('')
   const [selectedForm, setSelectedForm] = useState(null)
   const [monthlyData, setMonthlyData] = useState([])
   const [realKpiData, setRealKpiData] = useState([])
 
-  useEffect(() => {
-    fetchPlans()
-  }, [groupKey])
+  // Fetch plans when groupKey changes (fetchPlans is re-created due to useCallback deps)
 
-  async function fetchPlans() {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setMessage('Not logged in.')
-      return
-    }
-    try {
-      const resp = await fetch(`/api/cashflow-plans/group/${groupKey}/plans`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!resp.ok) throw new Error(await resp.text())
-      setPlans(await resp.json())
-    } catch (err) {
-      setMessage('Error: ' + err.message)
-    }
-  }
+  const fetchPlans = useCallback(() => {
+    (async () => {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setMessage('Not logged in.')
+        return
+      }
+      try {
+        const resp = await fetch(`/api/cashflow-plans/group/${groupKey}/plans`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (!resp.ok) throw new Error(await resp.text())
+        const data = await resp.json()
+        setPlans(data)
+        const realistic = data.find(p => p.scenario === 'REALISTIC')
+        if (realistic?.baseCurrency) setBasePlanCurrency(realistic.baseCurrency)
+      } catch (err) {
+        setMessage('Error: ' + err.message)
+      }
+    })()
+  }, [groupKey, setBasePlanCurrency])
+
+  useEffect(() => { fetchPlans() }, [fetchPlans])
 
   useEffect(() => {
     if (!plans.length) return
@@ -57,10 +66,12 @@ export default function ScenarioGroupLineItemsPage() {
       setMessage('Not logged in.')
       return
     }
-    const fetchKpi = (planId) =>
-      fetch(`/api/cashflow-plans/${planId}/monthly-kpi`, {
+    const fetchKpi = (planId) => {
+      const param = displayCurrency && displayCurrency !== 'HUF' ? `?displayCurrency=${encodeURIComponent(displayCurrency)}` : ''
+      return fetch(`/api/cashflow-plans/${planId}/monthly-kpi${param}`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then((r) => (r.ok ? r.json() : []))
+    }
 
     const worstPlan     = plans.find((p) => p.scenario === 'WORST')
     const realisticPlan = plans.find((p) => p.scenario === 'REALISTIC')
@@ -76,7 +87,8 @@ export default function ScenarioGroupLineItemsPage() {
         setMonthlyData([])
         return
       }
-      const combined = realData.map((realItem) => {
+      const combined = []
+      for (const realItem of realData) {
         const month = realItem.month
         const worstItem = worstData.find((w) => w.month === month) || {}
         const bestItem  = bestData.find((b) => b.month === month)  || {}
@@ -85,59 +97,55 @@ export default function ScenarioGroupLineItemsPage() {
         const sumsReal = {}
         const sumsWorst = {}
         const sumsBest = {}
-        categories.forEach((cat) => {
+        for (const cat of categories) {
           const sr = realItem.transactionCategorySums?.[cat] || 0
-          sumsReal[cat]   = directions[cat] === 'NEGATIVE' ? -Math.abs(sr) : Math.abs(sr)
+          sumsReal[cat] = directions[cat] === 'NEGATIVE' ? -Math.abs(sr) : Math.abs(sr)
           const sw = worstItem.transactionCategorySums?.[cat] || 0
-          sumsWorst[cat]  = (worstItem.transactionCategoryDirections?.[cat] === 'NEGATIVE')
-            ? -Math.abs(sw)
-            : Math.abs(sw)
+          sumsWorst[cat] = (worstItem.transactionCategoryDirections?.[cat] === 'NEGATIVE') ? -Math.abs(sw) : Math.abs(sw)
           const sb = bestItem.transactionCategorySums?.[cat] || 0
-          sumsBest[cat]   = (bestItem.transactionCategoryDirections?.[cat] === 'NEGATIVE')
-            ? -Math.abs(sb)
-            : Math.abs(sb)
-        })
-        return {
+          sumsBest[cat] = (bestItem.transactionCategoryDirections?.[cat] === 'NEGATIVE') ? -Math.abs(sb) : Math.abs(sb)
+        }
+        combined.push({
           month: `M${month}`,
           directions,
           categories,
-          sums: {
-            REALISTIC: sumsReal,
-            WORST:     sumsWorst,
-            BEST:      sumsBest
-          },
+          sums: { REALISTIC: sumsReal, WORST: sumsWorst, BEST: sumsBest },
           bankBalance: {
             REALISTIC: realItem.bankBalance,
-            WORST:     worstItem.bankBalance,
-            BEST:      bestItem.bankBalance
+            WORST: worstItem.bankBalance,
+            BEST: bestItem.bankBalance
           }
-        }
-      })
+        })
+      }
       setMonthlyData(combined)
     }).catch((err) => {
       console.error(err)
       setMonthlyData([])
       setRealKpiData([])
     })
-  }, [plans])
+  }, [plans, displayCurrency])
 
   const allItems = plans.flatMap((plan) =>
-    plan.lineItems.map((item) => ({ planId: plan.id, scenario: plan.scenario, ...item }))
+    (plan.lineItems || []).map((item) => ({ planId: plan.id, scenario: plan.scenario, baseCurrency: plan.baseCurrency, ...item }))
   )
+
+  const planCurrencyMap = useMemo(() => {
+    const map = new Map()
+    for (const p of plans) map.set(p.id, p.baseCurrency)
+    return map
+  }, [plans])
 
   const groupedAssumptions = useMemo(() => {
     const map = new Map()
     let fallback = 100000
-    allItems.forEach((it) => {
+    for (const it of allItems) {
       const key = it.assumptionId ?? `missing-${fallback++}`
-      if (!map.has(key)) {
-        map.set(key, { assumptionId: it.assumptionId, worst: null, realistic: null, best: null })
-      }
+      if (!map.has(key)) map.set(key, { assumptionId: it.assumptionId, worst: null, realistic: null, best: null })
       const grp = map.get(key)
-      if (it.scenario === 'WORST')      grp.worst      = it
-      if (it.scenario === 'REALISTIC') grp.realistic  = it
-      if (it.scenario === 'BEST')      grp.best       = it
-    })
+      if (it.scenario === 'WORST') grp.worst = it
+      else if (it.scenario === 'REALISTIC') grp.realistic = it
+      else if (it.scenario === 'BEST') grp.best = it
+    }
     return Array.from(map.values())
   }, [allItems])
 
@@ -162,6 +170,27 @@ export default function ScenarioGroupLineItemsPage() {
         <Grid item xs={12} md={8}>
           <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h5">Scenario Group: {groupKey}</Typography>
+            {Boolean(plans.length) && (
+              <Box sx={{ mt: 1, mb: 1, display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>Plan Base Currencies:</Typography>
+                {['WORST','REALISTIC','BEST'].map(scen => {
+                  const plan = plans.find(p => p.scenario === scen)
+                  return plan ? (
+                    <CurrencyBadge key={scen} code={plan.baseCurrency} title={`${scen} scenario base currency`} />
+                  ) : null
+                })}
+                {(() => {
+                  const bases = plans.map(p => p.baseCurrency).filter(Boolean)
+                  const distinct = Array.from(new Set(bases))
+                  if (distinct.length <= 1) return null
+                  return (
+                    <span role="alert" aria-label={`Base currency mismatch across scenarios: ${distinct.join(', ')}`}
+                      style={{ background:'#ed6c02', color:'#fff', padding:'4px 8px', borderRadius:4, fontSize:'0.65rem' }}
+                      title={`Base currency mismatch across scenarios: ${distinct.join(', ')}`}>Mismatch: {distinct.join(' / ')}</span>
+                  )
+                })()}
+              </Box>
+            )}
             {message && (
               <Typography variant="body2" color="error" sx={{ mt: 1 }}>
                 {message}
@@ -186,17 +215,17 @@ export default function ScenarioGroupLineItemsPage() {
                       <TableCell>{grp.assumptionId ?? 'N/A'}</TableCell>
                       <TableCell>
                         {grp.worst
-                          ? <ItemCell item={grp.worst} onDelete={() => handleDelete(grp.worst)} />
+                          ? <ItemCell item={grp.worst} baseCurrency={planCurrencyMap.get(grp.worst.planId)} onDelete={() => handleDelete(grp.worst)} />
                           : <Typography color="text.secondary">— none —</Typography>}
                       </TableCell>
                       <TableCell>
                         {grp.realistic
-                          ? <ItemCell item={grp.realistic} onDelete={() => handleDelete(grp.realistic)} />
+                          ? <ItemCell item={grp.realistic} baseCurrency={planCurrencyMap.get(grp.realistic.planId)} onDelete={() => handleDelete(grp.realistic)} />
                           : <Typography color="text.secondary">— none —</Typography>}
                       </TableCell>
                       <TableCell>
                         {grp.best
-                          ? <ItemCell item={grp.best} onDelete={() => handleDelete(grp.best)} />
+                          ? <ItemCell item={grp.best} baseCurrency={planCurrencyMap.get(grp.best.planId)} onDelete={() => handleDelete(grp.best)} />
                           : <Typography color="text.secondary">— none —</Typography>}
                       </TableCell>
                     </TableRow>
@@ -238,13 +267,24 @@ export default function ScenarioGroupLineItemsPage() {
   )
 }
 
-function ItemCell({ item, onDelete }) {
+
+function ItemCell({ item, onDelete, baseCurrency }) {
   return (
     <Box sx={{ border: '1px solid #ccc', p: 1, mb: 1, borderRadius: 1 }}>
       <Typography variant="subtitle2">{item.title}</Typography>
       {item.amount != null && (
-        <Typography variant="body2">
-          Amt: {amountFormatter.format(item.amount)}
+        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          Amt: {formatAmount(item.amount, { currency: item.currency || baseCurrency })}
+          {item.currency && item.currency !== baseCurrency && (
+            <Typography component="span" variant="caption" sx={{ fontWeight: 600 }} title={`Item currency differs from plan base (${baseCurrency || 'N/A'})`}>
+              {item.currency}
+            </Typography>
+          )}
+          {item.currency && item.currency === baseCurrency && (
+            <Typography component="span" variant="caption" color="text.secondary" title="Same as plan base currency">
+              {item.currency}
+            </Typography>
+          )}
         </Typography>
       )}
       {item.percentChange != null && (
@@ -255,4 +295,15 @@ function ItemCell({ item, onDelete }) {
       </Button>
     </Box>
   )
+}
+
+ItemCell.propTypes = {
+  item: PropTypes.shape({
+    title: PropTypes.string,
+    amount: PropTypes.number,
+    currency: PropTypes.string,
+    percentChange: PropTypes.number,
+  }).isRequired,
+  onDelete: PropTypes.func.isRequired,
+  baseCurrency: PropTypes.string,
 }

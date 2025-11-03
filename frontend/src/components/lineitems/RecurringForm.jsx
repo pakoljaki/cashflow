@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import CurrencySelect from '../CurrencySelect'
+import PropTypes from 'prop-types'
+import { useCurrency } from '../../context/CurrencyContext'
 import {
   Box,
   Typography,
@@ -14,7 +17,7 @@ import {
   Paper,
   InputAdornment
 } from '@mui/material'
-import { amountFormatter } from '../../utils/numberFormatter'
+import { formatAmount } from '../../utils/numberFormatter'
 
 export default function RecurringForm({ plans, onSuccess }) {
   const scenarios = ['WORST', 'REALISTIC', 'BEST']
@@ -31,6 +34,8 @@ export default function RecurringForm({ plans, onSuccess }) {
     scenarios.reduce((acc, s) => ({ ...acc, [s]: { active: false, amount: '' } }), {})
   )
   const [message, setMessage] = useState('')
+  const { basePlanCurrency } = useCurrency()
+  const [currency, setCurrency] = useState(basePlanCurrency || 'HUF')
 
   useEffect(() => {
     fetch('/api/categories', {
@@ -62,11 +67,12 @@ export default function RecurringForm({ plans, onSuccess }) {
       const body = {
         title: title.trim(),
         type: 'RECURRING',
-        amount: parseFloat(scenarioData[sc].amount) || 0,
+  amount: Number.parseFloat(scenarioData[sc].amount) || 0,
         frequency,
         startDate: startDate || null,
         endDate: endDate || null,
-        categoryId: selectedCategoryId || null
+        categoryId: selectedCategoryId || null,
+        currency
       }
       if (sharedId) body.assumptionId = sharedId
       const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
@@ -84,7 +90,7 @@ export default function RecurringForm({ plans, onSuccess }) {
       }
     }
     setMessage(`Added to ${count} scenario(s).`)
-    onSuccess && onSuccess()
+  onSuccess?.()
   }
 
   return (
@@ -116,7 +122,7 @@ export default function RecurringForm({ plans, onSuccess }) {
         <TextField
           label="Start Date"
           type="date"
-          InputLabelProps={{ shrink: true }}
+          slotProps={{ inputLabel: { shrink: true } }}
           value={startDate}
           onChange={e => setStartDate(e.target.value)}
           fullWidth
@@ -124,12 +130,17 @@ export default function RecurringForm({ plans, onSuccess }) {
         <TextField
           label="End Date"
           type="date"
-          InputLabelProps={{ shrink: true }}
+          slotProps={{ inputLabel: { shrink: true } }}
           value={endDate}
           onChange={e => setEndDate(e.target.value)}
           fullWidth
         />
       </Box>
+        {currency !== basePlanCurrency && (
+          <Typography variant="caption" sx={{ color:'warning.main' }}>
+            Currency mismatch: item currency {currency} differs from plan base {basePlanCurrency}.
+          </Typography>
+        )}
       <FormControl fullWidth>
         <InputLabel>Category</InputLabel>
         <Select
@@ -174,7 +185,14 @@ export default function RecurringForm({ plans, onSuccess }) {
           </Button>
         </Paper>
       )}
-      <Typography variant="subtitle1">Scenarios</Typography>
+      <CurrencySelect
+        label="Currency"
+        value={currency}
+        onChange={setCurrency}
+        helperText="Currency for recurring amounts"
+        sx={{ maxWidth: 220 }}
+      />
+      <Typography variant="subtitle1" sx={{ mt: 2 }}>Scenarios</Typography>
       <FormGroup>
         {scenarios.map(s => (
           <Box key={s} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -196,12 +214,10 @@ export default function RecurringForm({ plans, onSuccess }) {
               onChange={e => handleAmountChange(s, e.target.value)}
               helperText={
                 scenarioData[s].amount
-                  ? amountFormatter.format(Number(scenarioData[s].amount))
+                  ? formatAmount(Number(scenarioData[s].amount), { currency })
                   : ''
               }
-              InputProps={{
-                startAdornment: <InputAdornment position="start">HUF</InputAdornment>
-              }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> } }}
             />
           </Box>
         ))}
@@ -211,4 +227,9 @@ export default function RecurringForm({ plans, onSuccess }) {
       </Button>
     </Box>
   )
+}
+
+RecurringForm.propTypes = {
+  plans: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.number, scenario: PropTypes.string })).isRequired,
+  onSuccess: PropTypes.func,
 }

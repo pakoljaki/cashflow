@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -14,7 +14,10 @@ import {
   Button,
 } from '@mui/material'
 import '../styles/cashflowplans.css'
-import { amountFormatter } from '../utils/numberFormatter'
+import { formatAmount } from '../utils/numberFormatter'
+import CurrencyBadge from '../components/CurrencyBadge'
+import CurrencySelect from '../components/CurrencySelect'
+import { useCurrency } from '../context/CurrencyContext'
 
 export default function CashflowPlansPage() {
   const navigate = useNavigate()
@@ -25,32 +28,34 @@ export default function CashflowPlansPage() {
   const [endDate, setEndDate] = useState('')
   const [startBalance, setStartBalance] = useState('')
   const [message, setMessage] = useState('')
+  const { setBasePlanCurrency } = useCurrency()
+  const [baseCurrency, setBaseCurrency] = useState('HUF')
 
-  useEffect(() => {
-    fetchAllPlans()
+  const fetchAllPlans = useCallback(() => {
+    (async () => {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setMessage('Not logged in')
+        return
+      }
+      try {
+        const resp = await fetch('/api/cashflow-plans', {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (!resp.ok) throw new Error('Failed to fetch plans')
+        const data = await resp.json()
+        setAllPlans(data)
+        groupByScenario(data)
+      } catch (err) {
+        setMessage(err.message)
+      }
+    })()
   }, [])
 
-  async function fetchAllPlans() {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setMessage('Not logged in')
-      return
-    }
-    try {
-      const resp = await fetch('/api/cashflow-plans', {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      if (!resp.ok) throw new Error('Failed to fetch plans')
-      const data = await resp.json()
-      setAllPlans(data)
-      groupByScenario(data)
-    } catch (err) {
-      setMessage(err.message)
-    }
-  }
+  useEffect(() => { fetchAllPlans() }, [fetchAllPlans])
 
   function groupByScenario(plansArray) {
     const map = new Map()
@@ -59,7 +64,7 @@ export default function CashflowPlansPage() {
       map.get(plan.groupKey).push(plan)
     }
     const result = []
-    for (let [groupKey, plansInGroup] of map.entries()) {
+  for (let [, plansInGroup] of map.entries()) {
       let displayed = plansInGroup.find(p => p.scenario === 'REALISTIC') || plansInGroup[0]
       result.push(displayed)
     }
@@ -76,7 +81,7 @@ export default function CashflowPlansPage() {
       setMessage('Not logged in')
       return
     }
-    const body = { basePlanName, startDate, endDate, startBalance: startBalance || '0' }
+    const body = { basePlanName, startDate, endDate, startBalance: startBalance || '0', baseCurrency }
     try {
       const resp = await fetch('/api/cashflow-plans/scenarios', {
         method: 'POST',
@@ -92,17 +97,33 @@ export default function CashflowPlansPage() {
       const updated = [...allPlans, ...newGroup]
       setAllPlans(updated)
       groupByScenario(updated)
+      // Attempt to set context base plan currency from REALISTIC scenario if present
+      const realistic = newGroup.find(p => p.scenario === 'REALISTIC')
+      if (realistic?.baseCurrency) {
+        setBasePlanCurrency(realistic.baseCurrency)
+      } else {
+        setBasePlanCurrency(baseCurrency)
+      }
       setBasePlanName('')
       setStartDate('')
       setEndDate('')
       setStartBalance('')
+      setBaseCurrency('HUF')
     } catch (err) {
       setMessage('Error: ' + err.message)
     }
   }
 
   async function handleDeleteGroup(groupKey) {
-    if (!window.confirm('Are you sure you want to delete this plan group?')) return
+    const safeConfirm = (msg) => {
+      // Use globalThis.confirm if available; fallback true in non-browser env (tests)
+      /* eslint-disable no-undef */
+      try { return typeof globalThis !== 'undefined' && globalThis.confirm ? globalThis.confirm(msg) : true } catch { return true }
+      /* eslint-enable no-undef */
+    }
+    if (!safeConfirm('Are you sure you want to delete this plan group?')) {
+      return
+    }
     const token = localStorage.getItem('token')
     if (!token) {
       setMessage('Not logged in')
@@ -124,7 +145,7 @@ export default function CashflowPlansPage() {
     }
   }
 
-  const headers = ['ID', 'Plan Name', 'Start Date', 'End Date', 'Start Balance', 'Actions']
+  const headers = ['ID', 'Plan Name', 'Start Date', 'End Date', 'Start Balance', 'Base Currency', 'Actions']
 
   return (
     <Box className="cashflowplans-page">
@@ -155,7 +176,10 @@ export default function CashflowPlansPage() {
                   <TableCell>{plan.planName}</TableCell>
                   <TableCell>{plan.startDate}</TableCell>
                   <TableCell>{plan.endDate}</TableCell>
-                  <TableCell>{amountFormatter.format(plan.startBalance)}</TableCell>
+                  <TableCell>{formatAmount(plan.startBalance, { currency: plan.baseCurrency })}</TableCell>
+                  <TableCell>
+                    <CurrencyBadge code={plan.baseCurrency} title={`Base currency for this scenario plan`} />
+                  </TableCell>
                   <TableCell>
                     <Button
                       variant="contained"
@@ -195,7 +219,7 @@ export default function CashflowPlansPage() {
         <TextField
           label="Start Date"
           type="date"
-          InputLabelProps={{ shrink: true }}
+          slotProps={{ inputLabel: { shrink: true } }}
           value={startDate}
           onChange={e => setStartDate(e.target.value)}
           fullWidth
@@ -204,7 +228,7 @@ export default function CashflowPlansPage() {
         <TextField
           label="End Date"
           type="date"
-          InputLabelProps={{ shrink: true }}
+          slotProps={{ inputLabel: { shrink: true } }}
           value={endDate}
           onChange={e => setEndDate(e.target.value)}
           fullWidth
@@ -216,6 +240,13 @@ export default function CashflowPlansPage() {
           value={startBalance}
           onChange={e => setStartBalance(e.target.value)}
           fullWidth
+          sx={{ mb: 3 }}
+        />
+        <CurrencySelect
+          label="Base Currency"
+          value={baseCurrency}
+          onChange={setBaseCurrency}
+          helperText="Currency in which the plan's line items are denominated"
           sx={{ mb: 3 }}
         />
         <Button variant="contained" color="primary" fullWidth onClick={handleCreateScenarios}>
