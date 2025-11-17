@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FrankfurterFxProviderTest {
@@ -79,7 +78,7 @@ class FrankfurterFxProviderTest {
                 )
         );
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 
@@ -100,7 +99,7 @@ class FrankfurterFxProviderTest {
                 "rates", Map.of("USD", 1.1)
         );
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 
@@ -114,7 +113,7 @@ class FrankfurterFxProviderTest {
         Currency base = Currency.EUR;
         Set<Currency> quotes = EnumSet.of(Currency.USD);
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(null);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(null);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 
@@ -133,7 +132,7 @@ class FrankfurterFxProviderTest {
                 // No "rates" field
         );
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 
@@ -155,7 +154,7 @@ class FrankfurterFxProviderTest {
                 )
         );
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 
@@ -178,7 +177,7 @@ class FrankfurterFxProviderTest {
                 )
         );
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 
@@ -198,7 +197,7 @@ class FrankfurterFxProviderTest {
                 "rates", Map.of("HUF", 390)  // Integer instead of double
         );
 
-        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
+        lenient().when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(apiResponse);
 
         Map<Currency, BigDecimal> result = provider.getDailyQuotes(date, base, quotes);
 

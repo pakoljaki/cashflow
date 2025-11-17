@@ -10,13 +10,25 @@ export default function MonthlyDataTable({ startBalance = 0, originalStartBalanc
   const rows   = [...monthlyData].sort((a, b) => a.month - b.month)
   const months = rows.map(r => r.month)
 
-  const categorySet = new Set()
+  // Collect both income and expense categories separately
+  const incomeCategories = new Set()
+  const expenseCategories = new Set()
   for (const r of rows) {
-    for (const c of Object.keys(r.accountingCategorySums || {})) {
-      categorySet.add(c)
+    // Use new separate maps if available; fall back to legacy combined map for backward compat
+    const incomeMap = r.incomeAccountingCategorySums || {}
+    const expenseMap = r.expenseAccountingCategorySums || {}
+    
+    for (const c of Object.keys(incomeMap)) {
+      if (c && c.trim()) { // Only add non-empty category names
+        incomeCategories.add(c)
+      }
+    }
+    for (const c of Object.keys(expenseMap)) {
+      if (c && c.trim()) { // Only add non-empty category names
+        expenseCategories.add(c)
+      }
     }
   }
-  const categories = Array.from(categorySet)
 
   const incomesConverted  = rows.map(r => Number(r.totalIncome))
   const expensesConverted = rows.map(r => Number(r.totalExpense))
@@ -40,7 +52,6 @@ export default function MonthlyDataTable({ startBalance = 0, originalStartBalanc
   const endBalancesConverted = openBalancesConverted.map((ob, i) => ob + netFlowsConverted[i])
   const endBalancesOriginal  = openBalancesOriginal.map((ob, i) => ob + netFlowsOriginal[i])
 
-  const expenseCodes = new Set(['COGS','OPEX','DEPR','TAX','FIN','OTHER_EXP','REPAY'])
   const hasAnyOriginals = rows.some(r => r.originalTotalIncome != null || r.originalTotalExpense != null)
   const isConverted = displayCurrency !== baseCurrency && hasAnyOriginals
   const legacyMode = displayCurrency !== baseCurrency && !hasAnyOriginals
@@ -116,17 +127,31 @@ export default function MonthlyDataTable({ startBalance = 0, originalStartBalanc
           <tr className="mdt-row-divider">
             <td colSpan={months.length + 1} />
           </tr>
-          {categories.map(cat => (
+          {/* Income categories - always shown as positive */}
+          {Array.from(incomeCategories).sort().map(cat => (
             <tr key={cat}>
               <td>{cat}</td>
               {rows.map((r) => {
-                let rawConv = Number(r.accountingCategorySums[cat] || 0)
-                if (expenseCodes.has(cat)) rawConv = -Math.abs(rawConv)
-                // For now no original per category (needs backend support); show converted only.
-                const cls = rawConv < 0 ? 'mdt-negative' : 'mdt-positive'
+                const rawValue = Number(r.incomeAccountingCategorySums?.[cat] || 0)
+                const cls = rawValue > 0 ? 'mdt-positive' : 'mdt-zero'
                 return (
                   <td key={`${cat}-${r.month}`}>
-                    <span className={cls}>{formatAmount(rawConv, { currency: displayCurrency })}</span>
+                    <span className={cls}>{formatAmount(rawValue, { currency: displayCurrency })}</span>
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+          {/* Expense categories - always shown as negative */}
+          {Array.from(expenseCategories).sort().map(cat => (
+            <tr key={cat}>
+              <td>{cat}</td>
+              {rows.map((r) => {
+                const rawValue = Number(r.expenseAccountingCategorySums?.[cat] || 0)
+                const cls = rawValue > 0 ? 'mdt-negative' : 'mdt-zero'
+                return (
+                  <td key={`${cat}-${r.month}`}>
+                    <span className={cls}>{formatAmount(-rawValue, { currency: displayCurrency })}</span>
                   </td>
                 )
               })}

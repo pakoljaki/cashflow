@@ -32,7 +32,7 @@ export default function YearBalanceForm({ years, onSubmit }) {
         ))}
       </div>
       <div className="ybf-input">
-        <label htmlFor="startBalance">Starting Balance (HUF):</label>
+        <label htmlFor="startBalance">Starting Balance ({localBaseCurrency}):</label>
         <input
           id="startBalance"
           type="number"

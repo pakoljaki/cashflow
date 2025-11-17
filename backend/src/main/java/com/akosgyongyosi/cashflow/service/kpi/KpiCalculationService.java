@@ -108,10 +108,21 @@ public class KpiCalculationService {
             for (KpiEntry e : list) {
                 if (e.isPositive()) {
                     income = income.add(e.getAmount());
+                    // Store income categories separately (always positive)
+                    if (e.getAcctCode() != null && !e.getAcctCode().trim().isEmpty()) {
+                        dto.getIncomeAccountingCategorySums().merge(e.getAcctCode(), e.getAmount(), BigDecimal::add);
+                    }
                 } else {
-                    expense = expense.add(e.getAmount());
+                    expense = expense.add(e.getAmount().abs());  // Store as positive
+                    // Store expense categories separately (always positive)
+                    if (e.getAcctCode() != null && !e.getAcctCode().trim().isEmpty()) {
+                        dto.getExpenseAccountingCategorySums().merge(e.getAcctCode(), e.getAmount().abs(), BigDecimal::add);
+                    }
                 }
-                dto.getAccountingCategorySums().merge(e.getAcctCode(), e.getAmount(), BigDecimal::add);
+                // Legacy backward compat: also populate combined map with original signs
+                if (e.getAcctCode() != null && !e.getAcctCode().trim().isEmpty()) {
+                    dto.getAccountingCategorySums().merge(e.getAcctCode(), e.getAmount(), BigDecimal::add);
+                }
                 dto.getTransactionCategorySums().merge(e.getTxCategory(), e.getAmount(), BigDecimal::add);
                 dto.getTransactionCategoryDirections().putIfAbsent(
                         e.getTxCategory(), e.isPositive() ? "POSITIVE" : "NEGATIVE");

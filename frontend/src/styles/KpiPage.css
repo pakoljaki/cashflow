@@ -1,28 +1,99 @@
 .kpi-container {
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: 100vh;
 }
 
 .kpi-header {
   text-align: center;
   margin-bottom: 2rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
+
 .kpi-header h2 {
-  margin: 0;
+  margin: 0 0 0.5rem;
   font-size: 2rem;
-  color: #2c3e50;
+  color: #1a252f;
+  font-weight: 600;
 }
-.kpi-header p {
-  margin: 0.5rem 0 1rem;
-  color: #555;
+
+.kpi-start-balance {
+  margin: 0.5rem 0 1.5rem;
+  color: #4a5f7f;
+  font-size: 1.05rem;
+}
+
+.kpi-start-balance strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.kpi-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.kpi-info-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  color: #4a5f7f;
+  transition: color 0.2s ease;
+  border-radius: 50%;
+}
+
+.kpi-info-btn:hover {
+  color: #2c3e50;
+  background-color: #f0f2f5;
+}
+
+.kpi-info-popover {
+  padding: 1rem;
+  max-width: 360px;
+  font-size: 0.9rem;
+}
+
+.kpi-info-popover strong {
+  color: #1a252f;
+}
+
+.kpi-info-popover p {
+  margin: 0.75rem 0;
+  line-height: 1.5;
+  color: #4a5f7f;
+}
+
+.kpi-change-btn {
+  /* Uses MyButton styling */
 }
 
 .kpi-loading,
 .kpi-error {
   text-align: center;
-  color: #e74c3c;
   margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.kpi-loading {
+  color: #2980b9;
+  background-color: #d6eaf8;
+}
+
+.kpi-error {
+  color: #a93226;
+  background-color: #f5b7b1;
+  border: 1px solid #ec7063;
 }
 
 .kpi-content {
@@ -42,9 +113,20 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 1024px) {
+  .kpi-pie-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .chart-card {
-  background: #fff;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 1rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.5rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.chart-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
 }

@@ -17,12 +17,14 @@ import static org.mockito.Mockito.*;
 class FxServiceTest {
 
     private ExchangeRateRepository repo;
+    private FxRateEnsurer ensurer;
     private FxService service;
 
     @BeforeEach
     void setUp() {
         repo = mock(ExchangeRateRepository.class);
-        service = new FxService(repo);
+        ensurer = mock(FxRateEnsurer.class);
+        service = new FxService(repo, ensurer);
     }
 
     @Test

@@ -266,7 +266,9 @@ public class CsvImportService {
 
     private Currency parseCurrencyFromFilename(String filename) {
         String lower = filename.toLowerCase(Locale.ROOT);
-        return lower.contains("eur") ? Currency.EUR : Currency.HUF;
+        if (lower.contains("usd")) return Currency.USD;
+        if (lower.contains("eur")) return Currency.EUR;
+        return Currency.HUF;
     }
 
     private void renameAsProcessed(Path file) {

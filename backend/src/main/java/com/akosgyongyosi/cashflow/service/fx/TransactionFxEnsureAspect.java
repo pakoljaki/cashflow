@@ -5,6 +5,10 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,6 +20,7 @@ import java.util.List;
 public class TransactionFxEnsureAspect {
 
     private final FxRateEnsurer fxRateEnsurer;
+    private static final Logger log = LoggerFactory.getLogger(TransactionFxEnsureAspect.class);
 
     public TransactionFxEnsureAspect(FxRateEnsurer fxRateEnsurer) {
         this.fxRateEnsurer = fxRateEnsurer;
@@ -44,13 +49,41 @@ public class TransactionFxEnsureAspect {
             }
         }
 
+        Object result = pjp.proceed();
+
+        // Run FX ensure after the save completes to avoid holding DB locks across
+        // the FX ingestion run. Collect min/max dates earlier and execute ensure
+        // only after the repository operation has finished (after commit) to
+        // prevent lock contention with concurrent DB writes.
         if (!dates.isEmpty()) {
-            LocalDate min = dates.stream().min(LocalDate::compareTo).get();
-            LocalDate max = dates.stream().max(LocalDate::compareTo).get();
-            if (min.equals(max)) fxRateEnsurer.ensureFor(min);
-            else fxRateEnsurer.ensureForRange(min, max);
+            LocalDate min = dates.stream().min(LocalDate::compareTo)
+                .orElseThrow(() -> new IllegalStateException("Unable to determine min date"));
+            LocalDate max = dates.stream().max(LocalDate::compareTo)
+                .orElseThrow(() -> new IllegalStateException("Unable to determine max date"));
+
+            Runnable ensureTask = () -> {
+                try {
+                    if (min.equals(max)) fxRateEnsurer.ensureFor(min);
+                    else fxRateEnsurer.ensureForRange(min, max);
+                } catch (Exception e) {
+                    log.error("FX ensure failed for range {} - {}: {}", min, max, e.getMessage(), e);
+                }
+            };
+
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        ensureTask.run();
+                    }
+                });
+                log.debug("Registered FX ensure for dates {} - {} to run after commit", min, max);
+            } else {
+                // no transaction active, run immediately
+                ensureTask.run();
+            }
         }
 
-        return pjp.proceed();
+        return result;
     }
 }
