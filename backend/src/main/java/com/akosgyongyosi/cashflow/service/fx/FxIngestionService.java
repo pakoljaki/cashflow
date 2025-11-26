@@ -1,6 +1,8 @@
 package com.akosgyongyosi.cashflow.service.fx;
 
 import com.akosgyongyosi.cashflow.config.FxProperties;
+import com.akosgyongyosi.cashflow.dto.IngestionRangeSummaryDTO;
+import com.akosgyongyosi.cashflow.dto.IngestionSummaryDTO;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.ExchangeRate;
 import com.akosgyongyosi.cashflow.repository.ExchangeRateRepository;
@@ -40,7 +42,7 @@ public class FxIngestionService {
     }
 
     @Transactional
-    public IngestionSummary fetchAndUpsert(LocalDate date) {
+    public IngestionSummaryDTO fetchAndUpsert(LocalDate date) {
         try {
             Currency base = props.getCanonicalBase();
             Set<Currency> quotes = props.getQuotes();
@@ -74,7 +76,7 @@ public class FxIngestionService {
                     INSERTED.get(), UPDATED.get());
 
             warnIfStale();
-            return new IngestionSummary(date, inserted, updated, base, quotes.size());
+            return new IngestionSummaryDTO(date, inserted, updated, base, quotes.size());
         } catch (Exception ex) {
             long f = FAILURES.incrementAndGet();
             log.error("FX ingest failed for {} (failures={}): {}", date, f, ex.getMessage(), ex);
@@ -83,13 +85,42 @@ public class FxIngestionService {
     }
 
     @Transactional
-    public IngestionRangeSummary fetchAndUpsert(LocalDate startInclusive, LocalDate endInclusive) {
-        IngestionRangeSummary sum = new IngestionRangeSummary(startInclusive, endInclusive);
+    public IngestionRangeSummaryDTO fetchAndUpsert(LocalDate startInclusive, LocalDate endInclusive) {
+        IngestionRangeSummaryDTO sum = new IngestionRangeSummaryDTO(startInclusive, endInclusive);
+        Currency base = props.getCanonicalBase();
+        Set<Currency> quotes = props.getQuotes();
+        Map<LocalDate, Map<Currency, BigDecimal>> range = provider.getRangeQuotes(startInclusive, endInclusive, base, quotes);
+        if (range != null && !range.isEmpty()) {
+            for (Map.Entry<LocalDate, Map<Currency, BigDecimal>> day : range.entrySet()) {
+                LocalDate date = day.getKey();
+                Map<Currency, BigDecimal> dayRates = day.getValue();
+                int inserted = 0; int updated = 0;
+                for (Currency q : quotes) {
+                    if (q == base) continue;
+                    BigDecimal rate = dayRates.get(q);
+                    if (rate == null) continue;
+                    ExchangeRate er = repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, base, q)
+                            .orElseGet(ExchangeRate::new);
+                    boolean isNew = er.getId() == null;
+                    er.setRateDate(date);
+                    er.setBaseCurrency(base);
+                    er.setQuoteCurrency(q);
+                    er.setRateMid(rate);
+                    er.setProvider(provider.getProviderName());
+                    er.setFetchedAt(Instant.now());
+                    repo.save(er);
+                    if (isNew) { inserted++; INSERTED.incrementAndGet(); } else { updated++; UPDATED.incrementAndGet(); }
+                }
+                sum.add(new IngestionSummaryDTO(date, inserted, updated, base, quotes.size()));
+            }
+            log.info("FX ingest (range optimized) {}..{} -> inserted={} updated={}", startInclusive, endInclusive, sum.getTotalInserted(), sum.getTotalUpdated());
+            warnIfStale();
+            return sum;
+        }
         for (LocalDate d = startInclusive; !d.isAfter(endInclusive); d = d.plusDays(1)) {
             sum.add(fetchAndUpsert(d));
         }
-        log.info("FX ingest range {}..{} -> inserted={}, updated={}",
-                startInclusive, endInclusive, sum.getTotalInserted(), sum.getTotalUpdated());
+        log.info("FX ingest (range loop) {}..{} -> inserted={} updated={}", startInclusive, endInclusive, sum.getTotalInserted(), sum.getTotalUpdated());
         return sum;
     }
 
@@ -108,28 +139,4 @@ public class FxIngestionService {
         }
     }
 
-    public static final class IngestionSummary {
-        private final LocalDate date; private final int inserted; private final int updated;
-        private final Currency base; private final int requestedQuotes;
-        public IngestionSummary(LocalDate date, int inserted, int updated, Currency base, int requestedQuotes) {
-            this.date = date; this.inserted = inserted; this.updated = updated;
-            this.base = base; this.requestedQuotes = requestedQuotes;
-        }
-        public LocalDate getDate() { return date; }
-        public int getInserted() { return inserted; }
-        public int getUpdated() { return updated; }
-        public Currency getBase() { return base; }
-        public int getRequestedQuotes() { return requestedQuotes; }
-    }
-
-    public static final class IngestionRangeSummary {
-        private final LocalDate start; private final LocalDate end;
-        private int totalInserted; private int totalUpdated;
-        public IngestionRangeSummary(LocalDate start, LocalDate end) { this.start = start; this.end = end; }
-        public void add(IngestionSummary s) { this.totalInserted += s.getInserted(); this.totalUpdated += s.getUpdated(); }
-        public LocalDate getStart() { return start; }
-        public LocalDate getEnd() { return end; }
-        public int getTotalInserted() { return totalInserted; }
-        public int getTotalUpdated() { return totalUpdated; }
-    }
 }

@@ -56,9 +56,33 @@ export default function OneTimeForm({ plans, onSuccess }) {
       [s]: { ...prev[s], amount: val }
     }))
 
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) return
+    const token = localStorage.getItem('token')
+    try {
+      const resp = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newCatName.trim(), direction: newCatDirection })
+      })
+      if (!resp.ok) throw new Error(await resp.text())
+      const newCat = await resp.json()
+      setCategories([...categories, newCat])
+      setSelectedCategoryId(newCat.id)
+      setNewCatName('')
+      setNewCatDirection('POSITIVE')
+      setShowNewCategoryForm(false)
+    } catch (err) {
+      setMessage('Error creating category: ' + err.message)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!title.trim() || !transactionDate) return
-    let sharedId = null, count = 0
+    let sharedId = null, count = 0, warnings = []
     for (let plan of plans) {
       const sc = plan.scenario
       if (!scenarioData[sc].active) continue
@@ -82,17 +106,32 @@ export default function OneTimeForm({ plans, onSuccess }) {
       if (resp.ok) {
         const item = await resp.json()
         if (!sharedId) sharedId = item?.assumptionId
+        if (item?.warning && !warnings.includes(item.warning)) {
+          warnings.push(item.warning)
+        }
         count++
       }
     }
-    setMessage(`Created for ${count} scenario(s).`)
+    let msg = `Created for ${count} scenario(s).`
+    if (warnings.length > 0) {
+      msg += ' ⚠️ ' + warnings.join(' ')
+    }
+    setMessage(msg)
   onSuccess?.()
   }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="h6">One-Time Assumption</Typography>
-      {message && <Typography variant="body2" color="success.main">{message}</Typography>}
+      {message && (
+        <Typography 
+          variant="body2" 
+          color={message.includes('⚠️') ? 'warning.main' : 'success.main'}
+          sx={{ whiteSpace: 'pre-wrap' }}
+        >
+          {message}
+        </Typography>
+      )}
       <TextField
         label="Title"
         value={title}
@@ -146,7 +185,7 @@ export default function OneTimeForm({ plans, onSuccess }) {
               <MenuItem value="NEGATIVE">NEGATIVE</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="contained" sx={{ mt: 1 }} onClick={handleSubmit}>
+          <Button variant="contained" sx={{ mt: 1 }} onClick={handleCreateCategory}>
             Save Category
           </Button>
         </Paper>

@@ -1,6 +1,8 @@
 package com.akosgyongyosi.cashflow.service.fx;
 
 import com.akosgyongyosi.cashflow.config.FxProperties;
+import com.akosgyongyosi.cashflow.dto.IngestionRangeSummaryDTO;
+import com.akosgyongyosi.cashflow.dto.IngestionSummaryDTO;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.ExchangeRate;
 import com.akosgyongyosi.cashflow.repository.ExchangeRateRepository;
@@ -20,8 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("DataFlowIssue")
 class FxIngestionServiceTest {
 
     @Mock
@@ -60,11 +64,11 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.empty());
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionSummary summary = fxIngestionService.fetchAndUpsert(date);
+        IngestionSummaryDTO summary = fxIngestionService.fetchAndUpsert(date);
 
         assertThat(summary.getDate()).isEqualTo(date);
         assertThat(summary.getInserted()).isEqualTo(2);
-        assertThat(summary.getUpdated()).isEqualTo(0);
+        assertThat(summary.getUpdated()).isZero();
         assertThat(summary.getBase()).isEqualTo(base);
         assertThat(summary.getRequestedQuotes()).isEqualTo(2);
         
@@ -95,9 +99,9 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.of(existingRate));
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionSummary summary = fxIngestionService.fetchAndUpsert(date);
+        IngestionSummaryDTO summary = fxIngestionService.fetchAndUpsert(date);
 
-        assertThat(summary.getInserted()).isEqualTo(0);
+        assertThat(summary.getInserted()).isZero();
         assertThat(summary.getUpdated()).isEqualTo(1);
         
         ArgumentCaptor<ExchangeRate> captor = ArgumentCaptor.forClass(ExchangeRate.class);
@@ -124,10 +128,10 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.empty());
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionSummary summary = fxIngestionService.fetchAndUpsert(date);
+        IngestionSummaryDTO summary = fxIngestionService.fetchAndUpsert(date);
 
-        assertThat(summary.getInserted()).isEqualTo(1); // Only EUR, not USD->USD
-        verify(repo, times(1)).save(any(ExchangeRate.class));
+        assertThat(summary.getInserted()).isEqualTo(1);
+        verify(repo, times(1)).save(isNotNull());
     }
 
     @Test
@@ -147,10 +151,10 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.empty());
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionSummary summary = fxIngestionService.fetchAndUpsert(date);
+        IngestionSummaryDTO summary = fxIngestionService.fetchAndUpsert(date);
 
-        assertThat(summary.getInserted()).isEqualTo(1); // Only EUR
-        verify(repo, times(1)).save(any(ExchangeRate.class));
+        assertThat(summary.getInserted()).isEqualTo(1);
+        verify(repo, times(1)).save(isNotNull());
     }
 
     @Test
@@ -168,7 +172,7 @@ class FxIngestionServiceTest {
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Provider API error");
         
-        verify(repo, never()).save(any());
+        verify(repo, never()).save(isNotNull());
     }
 
     @Test
@@ -188,16 +192,16 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.empty());
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionRangeSummary summary = 
+        IngestionRangeSummaryDTO summary = 
             fxIngestionService.fetchAndUpsert(start, end);
 
         assertThat(summary.getStart()).isEqualTo(start);
         assertThat(summary.getEnd()).isEqualTo(end);
-        assertThat(summary.getTotalInserted()).isEqualTo(3); // 3 days
-        assertThat(summary.getTotalUpdated()).isEqualTo(0);
+        assertThat(summary.getTotalInserted()).isEqualTo(3);
+        assertThat(summary.getTotalUpdated()).isZero();
         
         verify(provider, times(3)).getDailyQuotes(any(), eq(base), eq(quotes));
-        verify(repo, times(3)).save(any(ExchangeRate.class));
+        verify(repo, times(3)).save(isNotNull());
     }
 
     @Test
@@ -215,7 +219,7 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.empty());
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionRangeSummary summary = 
+        IngestionRangeSummaryDTO summary = 
             fxIngestionService.fetchAndUpsert(date, date);
 
         assertThat(summary.getTotalInserted()).isEqualTo(1);
@@ -245,7 +249,7 @@ class FxIngestionServiceTest {
             .thenReturn(Optional.of(existingRate));
         when(repo.save(any(ExchangeRate.class))).thenAnswer(i -> i.getArgument(0));
 
-        FxIngestionService.IngestionRangeSummary summary = 
+        IngestionRangeSummaryDTO summary = 
             fxIngestionService.fetchAndUpsert(start, end);
 
         assertThat(summary.getTotalInserted()).isEqualTo(1);

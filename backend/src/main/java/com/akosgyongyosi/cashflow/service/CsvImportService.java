@@ -33,16 +33,19 @@ public class CsvImportService {
     private final TransactionRepository transactionRepository;
     private final BankAccountRepository bankAccountRepository;
     private final TransactionCategoryRepository categoryRepository;
+    private final com.akosgyongyosi.cashflow.service.fx.TransactionDateRangeFxService fxService;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final char CSV_DELIMITER = ';';
 
     public CsvImportService(TransactionRepository transactionRepository,
                             BankAccountRepository bankAccountRepository,
-                            TransactionCategoryRepository categoryRepository) {
+                            TransactionCategoryRepository categoryRepository,
+                            com.akosgyongyosi.cashflow.service.fx.TransactionDateRangeFxService fxService) {
         this.transactionRepository = transactionRepository;
         this.bankAccountRepository = bankAccountRepository;
         this.categoryRepository = categoryRepository;
+        this.fxService = fxService;
     }
 
     @Transactional
@@ -87,6 +90,11 @@ public class CsvImportService {
 
             int saved = parseCsv(reader, fileCurrency);
             log.info("✓ {} transactions imported from upload {}", saved, originalFilename);
+            
+            // Rename file in csv_imports directory if it exists
+            if (originalFilename != null && !originalFilename.isBlank()) {
+                renameFileInImportDirectory(originalFilename);
+            }
         } catch (IOException e) {
             log.error("IOException during CSV parsing: {}", e.getMessage(), e);
             throw new CsvImportException("Error parsing uploaded CSV " + originalFilename, e);
@@ -98,6 +106,7 @@ public class CsvImportService {
 
     private int parseCsv(BufferedReader reader, Currency fileCurrency) throws IOException {
         int recordCount = 0;
+        java.util.Set<LocalDate> transactionDates = new java.util.HashSet<>();
 
         CSVFormat fmt = CSVFormat.Builder.create(CSVFormat.DEFAULT)
                 .setDelimiter(CSV_DELIMITER)
@@ -106,23 +115,33 @@ public class CsvImportService {
             for (CSVRecord rec : parser) {
                 String first = rec.get(0);
                 if (first != null) first = first.trim();
-                // Skip potential header (non-date first cell)
                 if (first == null || first.isBlank()) {
-                    continue; // empty line
+                    continue;
                 }
                 if (!first.matches("\\d{4}\\.\\d{2}\\.\\d{2}")) {
-                    // Treat as header ONLY if record number == 1 and contains non-date text
                     if (rec.getRecordNumber() == 1) {
-                        continue; // header row
+                        continue; 
                     }
                 }
                 Transaction tx = mapToTransaction(rec, fileCurrency);
                 if (tx != null) {
                     transactionRepository.save(tx);
+                    transactionDates.add(tx.getBookingDate());
+                    transactionDates.add(tx.getValueDate());
                     recordCount++;
                 }
             }
         }
+        
+        // Pre-fetch exchange rates for all transaction dates + 1 year forward
+        if (!transactionDates.isEmpty()) {
+            try {
+                fxService.ensureRatesForTransactionsWithForwardCoverage(transactionDates);
+            } catch (Exception ex) {
+                log.warn("Failed to pre-fetch FX rates for imported transactions: {}", ex.getMessage());
+            }
+        }
+        
         return recordCount;
     }
 
@@ -200,8 +219,6 @@ public class CsvImportService {
         try {
             return bankAccountRepository.findByAccountNumber(accountNumber)
                        .map(existing -> {
-                           // Bank account already exists - use it as-is
-                           // Log warning if currency differs from CSV
                            if (existing.getCurrency() != currency) {
                                log.warn("Bank account {} exists with currency {}, CSV specified {}. Using existing account.",
                                    accountNumber, existing.getCurrency(), currency);
@@ -209,7 +226,6 @@ public class CsvImportService {
                            return existing;
                        })
                        .orElseGet(() -> {
-                           // Create new bank account
                            BankAccount b = new BankAccount();
                            b.setAccountNumber(accountNumber);
                            b.setOwner(owner);
@@ -224,7 +240,6 @@ public class CsvImportService {
         }
     }
 
-    // Removed @Transactional (private helper)
     private TransactionCategory assignUnassignedCategory(TransactionDirection dir) {
         String name = "Unassigned(" + dir.name() + ")";
         try {
@@ -238,7 +253,6 @@ public class CsvImportService {
                     });
         } catch (Exception e) {
             log.error("Error finding/creating unassigned category: {}", e.getMessage());
-            // Try to find it again in case it was created by another thread
             return categoryRepository.findByName(name)
                     .orElseThrow(() -> new RuntimeException("Cannot create unassigned category", e));
         }
@@ -257,7 +271,6 @@ public class CsvImportService {
         }
     }
 
-    // Custom exception wrapping IO issues during CSV import
     public static class CsvImportException extends RuntimeException {
         public CsvImportException(String message, Throwable cause) {
             super(message, cause);
@@ -278,6 +291,21 @@ public class CsvImportService {
             Files.move(file, processed, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
             log.warn("Could not rename {} as processed: {}", file, ex.getMessage());
+        }
+    }
+
+    private void renameFileInImportDirectory(String filename) {
+        try {
+            Path dir = Paths.get(csvImportPath);
+            Path file = dir.resolve(filename);
+            if (Files.exists(file)) {
+                renameAsProcessed(file);
+                log.info("Renamed manually uploaded file: {} -> {}", filename, filename.replace(".csv", "-processed.csv"));
+            } else {
+                log.debug("File {} not found in import directory, skipping rename", filename);
+            }
+        } catch (Exception ex) {
+            log.warn("Could not rename manually uploaded file {}: {}", filename, ex.getMessage());
         }
     }
 }

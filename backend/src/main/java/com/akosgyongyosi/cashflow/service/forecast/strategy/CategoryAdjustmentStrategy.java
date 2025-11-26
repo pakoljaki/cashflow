@@ -20,6 +20,10 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
 
     @Override
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
+        if (Boolean.TRUE.equals(item.getIsApplied())) {
+            return; // Already applied, skip to prevent double application
+        }
+        
         BigDecimal factor = BigDecimal.valueOf(item.getPercentChange());
         LocalDate startDate = item.getStartDate() != null ? item.getStartDate() : plan.getStartDate();
         LocalDate endDate   = item.getEndDate()   != null ? item.getEndDate()   : plan.getEndDate();
@@ -27,12 +31,13 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
         for (HistoricalTransaction tx : plan.getBaselineTransactions()) {
             if (tx.getCategory() != null && tx.getCategory().equals(item.getCategory())) {
                 LocalDate txDate = tx.getTransactionDate();
-                if (!txDate.isBefore(startDate) && !txDate.isAfter(endDate) && !item.getIsApplied()) {
-                    item.setIsApplied(true);
+                if (!txDate.isBefore(startDate) && !txDate.isAfter(endDate)) {
                     BigDecimal adjusted = tx.getAmount().multiply(factor);
                     tx.setAmount(adjusted);
                 }
             }
         }
+        
+        item.setIsApplied(true); // Mark as applied AFTER processing all transactions
     }
 }

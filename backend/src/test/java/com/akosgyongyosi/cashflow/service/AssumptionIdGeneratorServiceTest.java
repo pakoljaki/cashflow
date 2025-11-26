@@ -33,7 +33,6 @@ class AssumptionIdGeneratorServiceTest {
         ArgumentCaptor<AssumptionIdSequence> captor = ArgumentCaptor.forClass(AssumptionIdSequence.class);
         verify(repo, times(2)).save(captor.capture());
         
-        // First save: create with nextVal=1
         AssumptionIdSequence firstSave = captor.getAllValues().get(0);
         assertThat(firstSave.getSeqName()).isEqualTo("ASSUMPTION_ID");
         

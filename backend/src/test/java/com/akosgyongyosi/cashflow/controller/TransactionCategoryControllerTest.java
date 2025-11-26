@@ -1,5 +1,6 @@
 package com.akosgyongyosi.cashflow.controller;
 
+import com.akosgyongyosi.cashflow.dto.CategoryRequestDTO;
 import com.akosgyongyosi.cashflow.entity.TransactionCategory;
 import com.akosgyongyosi.cashflow.entity.TransactionDirection;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
@@ -59,7 +60,7 @@ class TransactionCategoryControllerTest {
 
     @Test
     void createCategory_shouldCreateNewCategory() {
-        TransactionCategoryController.CategoryRequest request = new TransactionCategoryController.CategoryRequest();
+        CategoryRequestDTO request = new CategoryRequestDTO();
         request.setName("New Category");
         request.setDirection(TransactionDirection.NEGATIVE);
 
@@ -81,7 +82,7 @@ class TransactionCategoryControllerTest {
 
     @Test
     void createCategory_shouldReturnBadRequestWhenNameIsMissing() {
-        TransactionCategoryController.CategoryRequest request = new TransactionCategoryController.CategoryRequest();
+        CategoryRequestDTO request = new CategoryRequestDTO();
         request.setDirection(TransactionDirection.NEGATIVE);
 
         ResponseEntity<?> response = transactionCategoryController.createCategory(request);
@@ -93,7 +94,7 @@ class TransactionCategoryControllerTest {
 
     @Test
     void createCategory_shouldReturnBadRequestWhenDirectionIsMissing() {
-        TransactionCategoryController.CategoryRequest request = new TransactionCategoryController.CategoryRequest();
+        CategoryRequestDTO request = new CategoryRequestDTO();
         request.setName("New Category");
 
         ResponseEntity<?> response = transactionCategoryController.createCategory(request);

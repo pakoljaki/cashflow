@@ -17,12 +17,12 @@ public class FxRateEnsurer {
     }
 
     public void ensureFor(LocalDate bookingDate) {
-        if (!props.isEnabled() || bookingDate == null) return;
+        if (!props.isEnabled() || bookingDate == null || !props.isDynamicFetchEnabled()) return; // skip runtime fetch when dynamic disabled
         ingestion.fetchAndUpsert(bookingDate);
     }
 
     public void ensureForRange(LocalDate startInclusive, LocalDate endInclusive) {
-        if (!props.isEnabled() || startInclusive == null || endInclusive == null) return;
+        if (!props.isEnabled() || startInclusive == null || endInclusive == null || !props.isDynamicFetchEnabled()) return; // skip runtime fetch when dynamic disabled
         ingestion.fetchAndUpsert(startInclusive, endInclusive);
     }
 }

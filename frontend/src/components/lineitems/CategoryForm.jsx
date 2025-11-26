@@ -51,6 +51,7 @@ export default function CategoryForm({ plans, onSuccess }) {
     if (!title.trim()) return
     let sharedId = null
     let count = 0
+    let warnings = []
     for (let plan of plans) {
       const sc = plan.scenario
       if (!scenarioData[sc].active) continue
@@ -74,10 +75,17 @@ export default function CategoryForm({ plans, onSuccess }) {
       if (resp.ok) {
         const item = await resp.json()
         if (!sharedId) sharedId = item.assumptionId
+        if (item?.warning && !warnings.includes(item.warning)) {
+          warnings.push(item.warning)
+        }
         count++
       }
     }
-    setMessage(`Added to ${count} scenario(s).`)
+    let msg = `Added to ${count} scenario(s).`
+    if (warnings.length > 0) {
+      msg += ' ⚠️ ' + warnings.join(' ')
+    }
+    setMessage(msg)
     onSuccess && onSuccess()
   }
 
@@ -85,7 +93,11 @@ export default function CategoryForm({ plans, onSuccess }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="h6">Category Adjustment</Typography>
       {message && (
-        <Typography variant="body2" color="success.main">
+        <Typography 
+          variant="body2" 
+          color={message.includes('⚠️') ? 'warning.main' : 'success.main'}
+          sx={{ whiteSpace: 'pre-wrap' }}
+        >
           {message}
         </Typography>
       )}

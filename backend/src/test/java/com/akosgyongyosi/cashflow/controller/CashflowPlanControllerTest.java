@@ -183,7 +183,7 @@ class CashflowPlanControllerTest {
         CashflowPlan best = new CashflowPlan();
         best.setScenario(ScenarioType.BEST);
 
-        when(planService.createAllScenarioPlans(anyString(), any(), any(), any()))
+        when(planService.createAllScenarioPlans(anyString(), any(), any(), any(), any()))
                 .thenReturn(List.of(worst, realistic, best));
         when(planRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

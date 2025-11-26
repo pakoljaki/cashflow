@@ -22,4 +22,7 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
     Optional<ExchangeRate>
     findTopByBaseCurrencyAndQuoteCurrencyAndRateDateGreaterThanEqualOrderByRateDateAsc(
             Currency base, Currency quote, LocalDate rateDate);
+
+    java.util.List<ExchangeRate> findByBaseCurrencyAndQuoteCurrencyAndRateDateBetweenOrderByRateDateAsc(
+            Currency base, Currency quote, LocalDate start, LocalDate end);
 }

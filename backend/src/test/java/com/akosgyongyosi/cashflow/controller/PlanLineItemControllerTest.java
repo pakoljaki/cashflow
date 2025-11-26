@@ -24,8 +24,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings({"null"})
 class PlanLineItemControllerTest {
 
     @Mock
@@ -43,6 +45,15 @@ class PlanLineItemControllerTest {
     @Mock
     private CashflowCalculationService cashflowCalculationService;
 
+    @Mock
+    private com.akosgyongyosi.cashflow.service.fx.RateLookupService rateLookupService;
+
+    @Mock
+    private com.akosgyongyosi.cashflow.service.fx.TransactionDateRangeFxService transactionDateRangeFxService;
+
+    @Mock
+    private com.akosgyongyosi.cashflow.service.CashflowPlanService cashflowPlanService;
+
     @InjectMocks
     private PlanLineItemController planLineItemController;
 
@@ -57,6 +68,7 @@ class PlanLineItemControllerTest {
         CashflowPlan plan = new CashflowPlan();
         plan.setId(planId);
         plan.setBaseCurrency(Currency.USD);
+        plan.setLineItems(new java.util.ArrayList<>()); // Initialize empty list for saveAll
 
         PlanLineItemRequestDTO dto = new PlanLineItemRequestDTO();
         dto.setTitle("One-time expense");
@@ -77,11 +89,12 @@ class PlanLineItemControllerTest {
 
         ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(planRepository).findById(planId);
-        verify(lineItemRepository).save(any(PlanLineItem.class));
-        verify(cashflowCalculationService).applyAllAssumptions(plan);
-        verify(planRepository).save(plan);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    verify(planRepository).findById(planId);
+    verify(lineItemRepository).save(any(PlanLineItem.class));
+    verify(cashflowCalculationService).applyAllAssumptions(plan);
+    verify(lineItemRepository).saveAll(anyList());
+    verify(planRepository).save(plan);
     }
 
     @Test
@@ -111,8 +124,9 @@ class PlanLineItemControllerTest {
 
         ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(lineItemRepository).save(any(PlanLineItem.class));
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    verify(lineItemRepository).save(any(PlanLineItem.class));
+    verify(lineItemRepository).saveAll(anyList());
     }
 
     @Test
@@ -147,9 +161,10 @@ class PlanLineItemControllerTest {
 
         ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(categoryRepository).findById(5L);
-        verify(lineItemRepository).save(any(PlanLineItem.class));
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    verify(categoryRepository).findById(5L);
+    verify(lineItemRepository).save(any(PlanLineItem.class));
+    verify(lineItemRepository).saveAll(anyList());
     }
 
     @Test
@@ -163,14 +178,18 @@ class PlanLineItemControllerTest {
 
         ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().toString()).contains("Error creating line item");
-        verify(lineItemRepository, never()).save(any());
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat((response.getBody() == null ? "" : response.getBody().toString())).contains("Error creating line item");
+    verify(lineItemRepository, never()).save(any());
     }
 
     @Test
     void getLineItemsForPlan_shouldReturnAllLineItems() {
         Long planId = 1L;
+        
+        CashflowPlan plan = new CashflowPlan();
+        plan.setId(planId);
+        plan.setBaseCurrency(Currency.USD);
         
         PlanLineItem item1 = new PlanLineItem();
         item1.setId(1L);
@@ -182,6 +201,7 @@ class PlanLineItemControllerTest {
         item2.setTitle("Item 2");
         item2.setType(LineItemType.RECURRING);
 
+        when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
         when(lineItemRepository.findByPlanId(planId)).thenReturn(Arrays.asList(item1, item2));
 
         ResponseEntity<List<PlanLineItemResponseDTO>> response = 
@@ -189,6 +209,7 @@ class PlanLineItemControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(2);
+        verify(planRepository).findById(planId);
         verify(lineItemRepository).findByPlanId(planId);
     }
 
@@ -199,6 +220,7 @@ class PlanLineItemControllerTest {
 
         CashflowPlan plan = new CashflowPlan();
         plan.setId(planId);
+        plan.setLineItems(new java.util.ArrayList<>());
 
         PlanLineItem item = new PlanLineItem();
         item.setId(itemId);
@@ -206,12 +228,17 @@ class PlanLineItemControllerTest {
 
         when(lineItemRepository.findById(itemId)).thenReturn(Optional.of(item));
         doNothing().when(lineItemRepository).delete(item);
+        when(cashflowPlanService.regenerateBaseline(planId)).thenReturn(plan);
+        when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
         doNothing().when(cashflowCalculationService).applyAllAssumptions(plan);
 
         ResponseEntity<Void> response = planLineItemController.deleteLineItem(planId, itemId);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         verify(lineItemRepository).delete(item);
+        verify(cashflowPlanService).regenerateBaseline(planId);
+        verify(planRepository, times(2)).findById(planId); // Called twice: once at line 173, once at line 183
+    verify(lineItemRepository).saveAll(anyList()); // Verify flags are persisted
         verify(cashflowCalculationService).applyAllAssumptions(plan);
         verify(planRepository).save(plan);
     }

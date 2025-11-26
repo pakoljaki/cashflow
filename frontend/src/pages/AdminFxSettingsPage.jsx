@@ -3,15 +3,13 @@ import { Box, Paper, Typography, TextField, Switch, FormControlLabel, Button, Au
 import CurrencySelect from '../components/CurrencySelect'
 import { useCurrency } from '../context/CurrencyContext'
 
-// Admin FX Settings page: allows viewing/updating FX configuration via /api/settings/fx
-// Requires ROLE_ADMIN (backend protected). Assumes token with roles stored in localStorage.
 export default function AdminFxSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [settings, setSettings] = useState(null)
   const [quotes, setQuotes] = useState([])
   const [saving, setSaving] = useState(false)
-  const { displayCurrency } = useCurrency() // possibly used for preview
+  const { displayCurrency } = useCurrency() 
 
   useEffect(() => {
     const token = localStorage.getItem('token')

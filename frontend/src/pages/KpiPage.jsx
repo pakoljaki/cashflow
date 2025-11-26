@@ -24,7 +24,6 @@ export default function KpiPage() {
   const handleInfoClick = (e) => setInfoAnchor(e.currentTarget)
   const handleInfoClose = () => setInfoAnchor(null)
 
-  // Reset back to initial form stage (used by "Change Settings" button)
   const reset = () => {
     setStage('form')
     setKpiData(null)

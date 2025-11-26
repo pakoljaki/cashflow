@@ -1,10 +1,11 @@
 package com.akosgyongyosi.cashflow.controller.admin;
 
+import com.akosgyongyosi.cashflow.dto.IngestionRangeSummaryDTO;
+import com.akosgyongyosi.cashflow.dto.IngestionSummaryDTO;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.ExchangeRate;
 import com.akosgyongyosi.cashflow.repository.ExchangeRateRepository;
 import com.akosgyongyosi.cashflow.service.fx.FxIngestionService;
-import com.akosgyongyosi.cashflow.service.fx.FxIngestionService.IngestionRangeSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -43,8 +43,8 @@ class FxAdminControllerTest {
         LocalDate start = LocalDate.of(2025, 11, 1);
         LocalDate end = LocalDate.of(2025, 11, 3);
         
-        IngestionRangeSummary summary = new IngestionRangeSummary(start, end);
-        summary.add(new FxIngestionService.IngestionSummary(start, 5, 3, Currency.EUR, 2));
+        IngestionRangeSummaryDTO summary = new IngestionRangeSummaryDTO(start, end);
+        summary.add(new IngestionSummaryDTO(start, 5, 3, Currency.EUR, 2));
         when(ingestionService.fetchAndUpsert(start, end)).thenReturn(summary);
 
         ResponseEntity<?> response = controller.refresh(start, end);
@@ -122,7 +122,7 @@ class FxAdminControllerTest {
         LocalDate start = LocalDate.of(2025, 11, 1);
         LocalDate end = LocalDate.of(2025, 11, 1);
         
-        IngestionRangeSummary summary = new IngestionRangeSummary(start, end);
+        IngestionRangeSummaryDTO summary = new IngestionRangeSummaryDTO(start, end);
         when(ingestionService.fetchAndUpsert(start, end)).thenReturn(summary);
 
         ResponseEntity<?> response = controller.refresh(start, end);

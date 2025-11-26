@@ -78,4 +78,18 @@ class FxRequestCacheTest {
         verify(fxService).convert(BigDecimal.ONE, Currency.EUR, Currency.HUF, date);
         verify(fxService).convert(BigDecimal.ONE, Currency.EUR, Currency.USD, date);
     }
+
+    @Test
+    void convert_future_date_falls_back_to_today() {
+        LocalDate futureDate = LocalDate.now().plusDays(30);
+        LocalDate today = LocalDate.now();
+        when(fxService.convert(BigDecimal.ONE, Currency.USD, Currency.HUF, today))
+                .thenReturn(BigDecimal.valueOf(380));
+
+        BigDecimal result = cache.convert(BigDecimal.valueOf(100), Currency.USD, Currency.HUF, futureDate);
+
+        assertThat(result).isEqualByComparingTo("38000"); // 100 * 380
+        verify(fxService).convert(BigDecimal.ONE, Currency.USD, Currency.HUF, today);
+        verifyNoMoreInteractions(fxService);
+    }
 }

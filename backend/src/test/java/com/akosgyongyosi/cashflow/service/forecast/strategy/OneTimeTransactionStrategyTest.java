@@ -17,7 +17,6 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OneTimeTransactionStrategyTest {
@@ -40,7 +39,6 @@ class OneTimeTransactionStrategyTest {
         cat = new TransactionCategory();
         cat.setName("Y");
 
-        // Initialize FX context
         FxRequestCache cache = new FxRequestCache(fxService);
         FxConversionContext.open(Currency.HUF, cache);
     }
@@ -154,5 +152,23 @@ class OneTimeTransactionStrategyTest {
         strat.applyForecast(plan, item);
 
         assertThat(plan.getBaselineTransactions().get(0).getCashflowPlan()).isEqualTo(plan);
+    }
+
+    @Test
+    void applyForecast_shouldPreserveOriginalAmountAndCurrency() {
+        PlanLineItem item = new PlanLineItem();
+        item.setType(LineItemType.ONE_TIME);
+        item.setCategory(cat);
+        item.setAmount(BigDecimal.valueOf(3000));
+        item.setCurrency(Currency.USD);
+        item.setTransactionDate(LocalDate.of(2025, 6, 30));
+        item.setIsApplied(false);
+
+        strat.applyForecast(plan, item);
+
+        assertThat(plan.getBaselineTransactions()).hasSize(1);
+        HistoricalTransaction tx = plan.getBaselineTransactions().get(0);
+        assertThat(tx.getOriginalAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
+        assertThat(tx.getOriginalCurrency()).isEqualTo(Currency.USD);
     }
 }

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Box, FormControl, InputLabel, Select, MenuItem, Typography } from '@mui/material'
-import CurrencySelect from '../CurrencySelect'
+import { Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material'
 import { useCurrency } from '../../context/CurrencyContext'
 import {
   ResponsiveContainer,
@@ -17,10 +16,29 @@ import {
 import { formatAmount } from '../../utils/numberFormatter'
 
 export default function CashflowChart({ monthlyData = [] }) {
-  const { displayCurrency, setDisplayCurrency } = useCurrency()
+  const { displayCurrency } = useCurrency()
   const [selectedScenario, setSelectedScenario] = useState('REALISTIC')
-  const directions = useMemo(() => monthlyData[0]?.directions || {}, [monthlyData])
-  const categories = useMemo(() => monthlyData[0]?.categories || [], [monthlyData])
+  
+  // Collect ALL unique categories and directions across ALL months
+  const { categories, directions } = useMemo(() => {
+    const allCategories = new Set()
+    const allDirections = {}
+    
+    monthlyData.forEach(entry => {
+      if (entry.directions) {
+        Object.entries(entry.directions).forEach(([cat, dir]) => {
+          allCategories.add(cat)
+          allDirections[cat] = dir
+        })
+      }
+    })
+    
+    return {
+      categories: Array.from(allCategories).filter(c => c && c.trim()), // Filter out empty strings
+      directions: allDirections
+    }
+  }, [monthlyData])
+  
   const data = useMemo(() => monthlyData.map(entry => {
     const row = { month: entry.month }
     categories.forEach(cat => {
@@ -60,17 +78,6 @@ export default function CashflowChart({ monthlyData = [] }) {
             <MenuItem value="BEST">Best</MenuItem>
           </Select>
         </FormControl>
-        <CurrencySelect
-          label="Display Currency"
-          value={displayCurrency}
-          onChange={setDisplayCurrency}
-          size="small"
-          sx={{ minWidth: 160 }}
-          helperText="For chart & tooltip amounts"
-        />
-        <Typography variant="caption" color="text.secondary">
-          Showing amounts in {displayCurrency}
-        </Typography>
       </Box>
 
       <ResponsiveContainer width="100%" height={400}>

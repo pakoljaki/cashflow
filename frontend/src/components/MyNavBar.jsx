@@ -19,8 +19,8 @@ export default function MyNavBar() {
             <NavLink to="/login" className="nav-button-link">
               <MyButton variant="primary">Login</MyButton>
             </NavLink>
-            <NavLink to="/admin/csv-upload" className="nav-button-link">
-              <MyButton variant="primary">CSV Upload</MyButton>
+            <NavLink to="/admin" className="nav-button-link">
+              <MyButton variant="primary">Admin Panel</MyButton>
             </NavLink>
             <NavLink to="/transactions" className="nav-button-link">
               <MyButton variant="primary">Transactions</MyButton>

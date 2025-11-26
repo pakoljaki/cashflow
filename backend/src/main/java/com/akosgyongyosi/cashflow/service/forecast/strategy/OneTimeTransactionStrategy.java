@@ -38,6 +38,8 @@ public class OneTimeTransactionStrategy implements ForecastStrategy {
             BigDecimal amountBase = FxConversionContext.convert(txDate, fromCurrency, nativeAmt);
 
             newTx.setAmount(amountBase);
+            newTx.setOriginalAmount(nativeAmt);
+            newTx.setOriginalCurrency(fromCurrency);
             newTx.setCategory(item.getCategory());
 
             plan.getBaselineTransactions().add(newTx);

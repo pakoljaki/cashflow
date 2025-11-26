@@ -5,7 +5,7 @@ import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
 import HomePage from './pages/HomePage';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import CsvUpload from './pages/CsvUpload';
+import AdminPage from './pages/Admin';
 import TransactionsPage from './pages/TransactionsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminFxSettingsPage from './pages/AdminFxSettingsPage';
@@ -25,7 +25,8 @@ function AppInner() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/admin/csv-upload" element={isAdmin ? <CsvUpload /> : <h2>403: Forbidden</h2>} />
+          <Route path="/admin" element={isAdmin ? <AdminPage /> : <h2>403: Forbidden</h2>} />
+          <Route path="/admin/csv-upload" element={isAdmin ? <AdminPage /> : <h2>403: Forbidden</h2>} />
           <Route path="/admin/dashboard" element={isAdmin ? <AdminDashboard /> : <h2>403: Forbidden</h2>} />
           <Route path="/admin/fx-settings" element={isAdmin ? <AdminFxSettingsPage /> : <h2>403: Forbidden</h2>} />
           <Route path="/transactions" element={<TransactionsPage />} />

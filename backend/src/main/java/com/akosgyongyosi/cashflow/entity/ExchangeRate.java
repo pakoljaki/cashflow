@@ -49,4 +49,12 @@ public class ExchangeRate {
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt = Instant.now();
 
+        /**
+         * True if this rate was stored as a provisional placeholder (e.g. for a future booking date
+         * where the real historical quote does not yet exist). Such rates SHOULD be reconciled later
+         * by a scheduled job that back-fills the real historical rate once the booking date is in the past.
+         */
+                @Column(name = "provisional", nullable = false, columnDefinition = "bit not null default 0")
+        private boolean provisional = false;
+
 }

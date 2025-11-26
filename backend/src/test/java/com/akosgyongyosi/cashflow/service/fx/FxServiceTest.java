@@ -3,6 +3,7 @@ package com.akosgyongyosi.cashflow.service.fx;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.ExchangeRate;
 import com.akosgyongyosi.cashflow.repository.ExchangeRateRepository;
+import com.akosgyongyosi.cashflow.config.FxProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,13 +19,22 @@ class FxServiceTest {
 
     private ExchangeRateRepository repo;
     private FxRateEnsurer ensurer;
+    private FxLookupAuditService auditService;
+    private RateLookupService lookup;
+    private ExchangeRateCache fxCache;
+    private FxProperties props;
     private FxService service;
 
     @BeforeEach
     void setUp() {
         repo = mock(ExchangeRateRepository.class);
         ensurer = mock(FxRateEnsurer.class);
-        service = new FxService(repo, ensurer);
+        auditService = mock(FxLookupAuditService.class);
+        props = new FxProperties();
+        props.setDynamicFetchEnabled(true); // enable dynamic path for existing tests
+        fxCache = mock(ExchangeRateCache.class); // not used in dynamic path
+        lookup = new RateLookupService(repo, ensurer, auditService, fxCache, props);
+        service = new FxService(lookup);
     }
 
     @Test
@@ -46,10 +56,16 @@ class FxServiceTest {
         rate.setQuoteCurrency(Currency.HUF);
         rate.setRateMid(BigDecimal.valueOf(400));
         rate.setRateDate(date);
-
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                Currency.EUR, Currency.HUF, date))
-                .thenReturn(Optional.of(rate));
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.HUF))
+        .thenReturn(Optional.of(rate));
+    // EUR->EUR is implicitly 1. Provide dummy object so lookup doesn't error.
+    ExchangeRate eurSelf = new ExchangeRate();
+    eurSelf.setBaseCurrency(Currency.EUR);
+    eurSelf.setQuoteCurrency(Currency.EUR);
+    eurSelf.setRateMid(BigDecimal.ONE);
+    eurSelf.setRateDate(date);
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.EUR))
+        .thenReturn(Optional.of(eurSelf));
 
         BigDecimal result = service.convert(BigDecimal.valueOf(10), Currency.EUR, Currency.HUF, date);
 
@@ -65,13 +81,15 @@ class FxServiceTest {
         rateHuf.setQuoteCurrency(Currency.HUF);
         rateHuf.setRateMid(BigDecimal.valueOf(400));
         rateHuf.setRateDate(date);
-
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                Currency.EUR, Currency.HUF, date))
-                .thenReturn(Optional.of(rateHuf));
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                Currency.EUR, Currency.EUR, date))
-                .thenReturn(Optional.empty());
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.HUF))
+        .thenReturn(Optional.of(rateHuf));
+    ExchangeRate eurSelf = new ExchangeRate();
+    eurSelf.setBaseCurrency(Currency.EUR);
+    eurSelf.setQuoteCurrency(Currency.EUR);
+    eurSelf.setRateMid(BigDecimal.ONE);
+    eurSelf.setRateDate(date);
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.EUR))
+        .thenReturn(Optional.of(eurSelf));
 
         BigDecimal result = service.convert(BigDecimal.valueOf(4000), Currency.HUF, Currency.EUR, date);
 
@@ -86,13 +104,17 @@ class FxServiceTest {
         rateHuf.setRateMid(BigDecimal.valueOf(400));
         ExchangeRate rateUsd = new ExchangeRate();
         rateUsd.setRateMid(BigDecimal.valueOf(1.1));
-
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                Currency.EUR, Currency.USD, date))
-                .thenReturn(Optional.of(rateUsd));
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                Currency.EUR, Currency.HUF, date))
-                .thenReturn(Optional.of(rateHuf));
+    ExchangeRate eurSelf = new ExchangeRate();
+    eurSelf.setBaseCurrency(Currency.EUR);
+    eurSelf.setQuoteCurrency(Currency.EUR);
+    eurSelf.setRateMid(BigDecimal.ONE);
+    eurSelf.setRateDate(date);
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.USD))
+        .thenReturn(Optional.of(rateUsd));
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.HUF))
+        .thenReturn(Optional.of(rateHuf));
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.EUR))
+        .thenReturn(Optional.of(eurSelf));
 
         BigDecimal result = service.convert(BigDecimal.valueOf(400), Currency.HUF, Currency.USD, date);
 
@@ -103,9 +125,10 @@ class FxServiceTest {
     @Test
     void convert_throws_when_no_rate_available() {
         LocalDate date = LocalDate.of(2020, 1, 1);
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                any(), any(), any()))
-                .thenReturn(Optional.empty());
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.HUF))
+        .thenReturn(Optional.empty());
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.EUR))
+        .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.convert(BigDecimal.TEN, Currency.HUF, Currency.EUR, date))
                 .isInstanceOf(IllegalStateException.class)
@@ -118,10 +141,15 @@ class FxServiceTest {
         ExchangeRate oldRate = new ExchangeRate();
         oldRate.setRateMid(BigDecimal.valueOf(390));
         oldRate.setRateDate(LocalDate.of(2024, 12, 10));
-
-        when(repo.findTopByBaseCurrencyAndQuoteCurrencyAndRateDateLessThanEqualOrderByRateDateDesc(
-                Currency.EUR, Currency.HUF, date))
-                .thenReturn(Optional.of(oldRate));
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.HUF))
+        .thenReturn(Optional.of(oldRate));
+    ExchangeRate eurSelf = new ExchangeRate();
+    eurSelf.setBaseCurrency(Currency.EUR);
+    eurSelf.setQuoteCurrency(Currency.EUR);
+    eurSelf.setRateMid(BigDecimal.ONE);
+    eurSelf.setRateDate(date);
+    when(repo.findByRateDateAndBaseCurrencyAndQuoteCurrency(date, Currency.EUR, Currency.EUR))
+        .thenReturn(Optional.of(eurSelf));
 
         BigDecimal result = service.convert(BigDecimal.TEN, Currency.EUR, Currency.HUF, date);
 

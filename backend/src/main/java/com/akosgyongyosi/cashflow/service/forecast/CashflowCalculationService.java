@@ -8,18 +8,18 @@ import com.akosgyongyosi.cashflow.service.fx.FxRequestCache;
 import com.akosgyongyosi.cashflow.service.fx.FxService;
 import com.akosgyongyosi.cashflow.service.fx.PlanCurrencyResolver;
 import com.akosgyongyosi.cashflow.service.fx.FxConversionContext;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 @Service
+@Slf4j
 public class CashflowCalculationService {
 
     private final List<ForecastStrategy> forecastStrategies;
     private final FxService fxService;
 
-    @Autowired
     public CashflowCalculationService(List<ForecastStrategy> forecastStrategies,
                                       FxService fxService) {
         this.forecastStrategies = forecastStrategies;
@@ -31,26 +31,34 @@ public class CashflowCalculationService {
         FxRequestCache cache = new FxRequestCache(fxService);
         FxConversionContext.open(base, cache);
         try {
+            // Category adjustments first
             for (PlanLineItem item : plan.getLineItems()) {
                 if (item.getType() == LineItemType.CATEGORY_ADJUSTMENT) {
-                    for (ForecastStrategy strategy : forecastStrategies) {
-                        if (strategy.supports(item.getType())) {
-                            strategy.applyForecast(plan, item);
-                        }
-                    }
+                    applyItemWithResilience(plan, item);
                 }
             }
+            // Others
             for (PlanLineItem item : plan.getLineItems()) {
                 if (item.getType() != LineItemType.CATEGORY_ADJUSTMENT) {
-                    for (ForecastStrategy strategy : forecastStrategies) {
-                        if (strategy.supports(item.getType())) {
-                            strategy.applyForecast(plan, item);
-                        }
-                    }
+                    applyItemWithResilience(plan, item);
                 }
             }
         } finally {
             FxConversionContext.close();
+        }
+    }
+
+    private void applyItemWithResilience(CashflowPlan plan, PlanLineItem item) {
+        for (ForecastStrategy strategy : forecastStrategies) {
+            if (strategy.supports(item.getType())) {
+                try {
+                    strategy.applyForecast(plan, item);
+                } catch (Exception ex) {
+                    log.error("[ASSUMPTION-APPLY-ERROR] planId={} itemId={} type={} assumptionId={} message={}",
+                            plan.getId(), item.getId(), item.getType(), item.getAssumptionId(), ex.getMessage(), ex);
+                    // Do not rethrow: continue applying remaining items
+                }
+            }
         }
     }
 }

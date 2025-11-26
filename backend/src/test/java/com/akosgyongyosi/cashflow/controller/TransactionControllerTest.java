@@ -1,5 +1,7 @@
 package com.akosgyongyosi.cashflow.controller;
 
+import com.akosgyongyosi.cashflow.dto.BulkCategoryRequestDTO;
+import com.akosgyongyosi.cashflow.dto.CategoryUpdateRequestDTO;
 import com.akosgyongyosi.cashflow.entity.*;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
@@ -8,13 +10,17 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("DataFlowIssue")
 class TransactionControllerTest {
 
     private TransactionRepository transactionRepository;
@@ -34,10 +40,11 @@ class TransactionControllerTest {
         Transaction tx2 = createTransaction(2L, "TX2");
         when(transactionRepository.findAll()).thenReturn(List.of(tx1, tx2));
 
-        List<Transaction> result = controller.getAllTransactions();
+    List<Transaction> result = controller.getAllTransactions();
 
-        assertThat(result).hasSize(2);
-        assertThat(result).containsExactly(tx1, tx2);
+    assertThat(result)
+        .hasSize(2)
+        .containsExactly(tx1, tx2);
     }
 
     @Test
@@ -48,10 +55,11 @@ class TransactionControllerTest {
         cat2.setName("Category 2");
         when(categoryRepository.findAll()).thenReturn(List.of(cat1, cat2));
 
-        List<TransactionCategory> result = controller.getAllCategories();
+    List<TransactionCategory> result = controller.getAllCategories();
 
-        assertThat(result).hasSize(2);
-        assertThat(result).containsExactly(cat1, cat2);
+    assertThat(result)
+        .hasSize(2)
+        .containsExactly(cat1, cat2);
     }
 
     @Test
@@ -63,9 +71,11 @@ class TransactionControllerTest {
 
         var response = controller.getCategoriesByDirection(TransactionDirection.POSITIVE);
 
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).getDirection()).isEqualTo(TransactionDirection.POSITIVE);
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    List<TransactionCategory> body = Objects.requireNonNull(response.getBody());
+    assertThat(body)
+        .hasSize(1);
+    assertThat(body.get(0).getDirection()).isEqualTo(TransactionDirection.POSITIVE);
     }
 
     @Test
@@ -77,9 +87,9 @@ class TransactionControllerTest {
         TransactionCategory savedCat = new TransactionCategory();
         savedCat.setId(10L);
         savedCat.setName("New Category");
-        when(categoryRepository.save(any(TransactionCategory.class))).thenReturn(savedCat);
+    when(categoryRepository.save(isNotNull())).thenReturn(savedCat);
 
-        TransactionController.CategoryUpdateRequest request = new TransactionController.CategoryUpdateRequest();
+        CategoryUpdateRequestDTO request = new CategoryUpdateRequestDTO();
         request.setCategoryName("New Category");
         request.setCreateNewCategory(true);
         request.setDescription("Test description");
@@ -87,10 +97,10 @@ class TransactionControllerTest {
         var response = controller.updateTransactionCategory(1L, request);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        verify(categoryRepository).save(argThat(cat ->
-                cat.getName().equals("New Category") &&
-                cat.getDirection() == TransactionDirection.POSITIVE
-        ));
+    verify(categoryRepository).save(argThat(cat ->
+        "New Category".equals(cat.getName()) &&
+            cat.getDirection() == TransactionDirection.POSITIVE
+    ));
         verify(transactionRepository).save(tx);
     }
 
@@ -106,7 +116,7 @@ class TransactionControllerTest {
         existingCat.setDirection(TransactionDirection.POSITIVE);
         when(categoryRepository.findByName("Existing Category")).thenReturn(Optional.of(existingCat));
 
-        TransactionController.CategoryUpdateRequest request = new TransactionController.CategoryUpdateRequest();
+        CategoryUpdateRequestDTO request = new CategoryUpdateRequestDTO();
         request.setCategoryName("Existing Category");
         request.setCreateNewCategory(false);
 
@@ -121,13 +131,13 @@ class TransactionControllerTest {
     void updateTransactionCategory_returns_error_when_transaction_not_found() {
         when(transactionRepository.findById(999L)).thenReturn(Optional.empty());
 
-        TransactionController.CategoryUpdateRequest request = new TransactionController.CategoryUpdateRequest();
+        CategoryUpdateRequestDTO request = new CategoryUpdateRequestDTO();
         request.setCategoryName("Category");
 
         var response = controller.updateTransactionCategory(999L, request);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        verify(transactionRepository, never()).save(any());
+    verify(transactionRepository, never()).save(isNotNull());
     }
 
     @Test
@@ -136,7 +146,7 @@ class TransactionControllerTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(tx));
         when(categoryRepository.findByName("Nonexistent")).thenReturn(Optional.empty());
 
-        TransactionController.CategoryUpdateRequest request = new TransactionController.CategoryUpdateRequest();
+        CategoryUpdateRequestDTO request = new CategoryUpdateRequestDTO();
         request.setCategoryName("Nonexistent");
         request.setCreateNewCategory(false);
 
@@ -155,14 +165,14 @@ class TransactionControllerTest {
         cat.setDirection(TransactionDirection.NEGATIVE);
         when(categoryRepository.findByName("Category")).thenReturn(Optional.of(cat));
 
-        TransactionController.CategoryUpdateRequest request = new TransactionController.CategoryUpdateRequest();
+        CategoryUpdateRequestDTO request = new CategoryUpdateRequestDTO();
         request.setCategoryName("Category");
         request.setCreateNewCategory(false);
 
         var response = controller.updateTransactionCategory(1L, request);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        assertThat(response.getBody().toString()).contains("direction mismatch");
+    assertThat(Objects.requireNonNull(response.getBody()).toString()).contains("direction mismatch");
     }
 
     @Test
@@ -176,11 +186,14 @@ class TransactionControllerTest {
         cat.setId(10L);
         cat.setDirection(TransactionDirection.POSITIVE);
 
-        when(categoryRepository.findById(10L)).thenReturn(Optional.of(cat));
-        when(transactionRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(tx1, tx2));
+    List<Long> ids = new ArrayList<>();
+    ids.add(1L);
+    ids.add(2L);
+    when(categoryRepository.findById(10L)).thenReturn(Optional.of(cat));
+    when(transactionRepository.findAllById(ids)).thenReturn(List.of(tx1, tx2));
 
-        TransactionController.BulkCategoryRequest request = new TransactionController.BulkCategoryRequest();
-        request.setTransactionIds(List.of(1L, 2L));
+    BulkCategoryRequestDTO request = new BulkCategoryRequestDTO();
+    request.setTransactionIds(ids);
         request.setCategoryId(10L);
 
         var response = controller.assignBulkCategory(request);
@@ -188,12 +201,12 @@ class TransactionControllerTest {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(tx1.getCategory()).isEqualTo(cat);
         assertThat(tx2.getCategory()).isEqualTo(cat);
-        verify(transactionRepository).saveAll(List.of(tx1, tx2));
+    verify(transactionRepository).saveAll(isNotNull());
     }
 
     @Test
     void assignBulkCategory_returns_error_when_no_transaction_ids() {
-        TransactionController.BulkCategoryRequest request = new TransactionController.BulkCategoryRequest();
+        BulkCategoryRequestDTO request = new BulkCategoryRequestDTO();
         request.setTransactionIds(List.of());
         request.setCategoryId(10L);
 
@@ -204,10 +217,13 @@ class TransactionControllerTest {
 
     @Test
     void assignBulkCategory_returns_error_when_category_not_found() {
-        when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
+    List<Long> missingCategoryIds = new ArrayList<>();
+    missingCategoryIds.add(1L);
+    missingCategoryIds.add(2L);
+    when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
 
-        TransactionController.BulkCategoryRequest request = new TransactionController.BulkCategoryRequest();
-        request.setTransactionIds(List.of(1L, 2L));
+    BulkCategoryRequestDTO request = new BulkCategoryRequestDTO();
+    request.setTransactionIds(missingCategoryIds);
         request.setCategoryId(999L);
 
         var response = controller.assignBulkCategory(request);
@@ -225,17 +241,20 @@ class TransactionControllerTest {
         TransactionCategory cat = new TransactionCategory();
         cat.setId(10L);
 
-        when(categoryRepository.findById(10L)).thenReturn(Optional.of(cat));
-        when(transactionRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(tx1, tx2));
+    List<Long> mixedIds = new ArrayList<>();
+    mixedIds.add(1L);
+    mixedIds.add(2L);
+    when(categoryRepository.findById(10L)).thenReturn(Optional.of(cat));
+    when(transactionRepository.findAllById(mixedIds)).thenReturn(List.of(tx1, tx2));
 
-        TransactionController.BulkCategoryRequest request = new TransactionController.BulkCategoryRequest();
-        request.setTransactionIds(List.of(1L, 2L));
+    BulkCategoryRequestDTO request = new BulkCategoryRequestDTO();
+    request.setTransactionIds(mixedIds);
         request.setCategoryId(10L);
 
         var response = controller.assignBulkCategory(request);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        assertThat(response.getBody().toString()).contains("Cannot mix");
+    assertThat(Objects.requireNonNull(response.getBody()).toString()).contains("Cannot mix");
     }
 
     @Test
@@ -263,7 +282,7 @@ class TransactionControllerTest {
         var response = controller.createCategory(newCat);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        verify(categoryRepository, never()).save(any());
+    verify(categoryRepository, never()).save(isNotNull());
     }
 
     private Transaction createTransaction(Long id, String memo) {

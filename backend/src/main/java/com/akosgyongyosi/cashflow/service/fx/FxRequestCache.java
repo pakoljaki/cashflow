@@ -3,6 +3,7 @@ package com.akosgyongyosi.cashflow.service.fx;
 import com.akosgyongyosi.cashflow.entity.Currency;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,11 +17,23 @@ public final class FxRequestCache {
     }
 
     public BigDecimal convert(BigDecimal amount, Currency from, Currency to, LocalDate date) {
-        if (from == to) return amount;
-        String key = from.name() + "->" + to.name() + "@" + date;
-        BigDecimal rate = rateByKey.computeIfAbsent(key,
-                k -> fx.convert(BigDecimal.ONE, from, to, date) // exact per-day cross rate
-        );
-        return amount.multiply(rate);
+        return convertDetailed(amount, from, to, date).convertedAmount();
     }
+
+    /**
+     * New detailed conversion entry point providing metadata; caches only the cross rate for now.
+     */
+    public DetailedConversion convertDetailed(BigDecimal amount, Currency from, Currency to, LocalDate date) {
+        if (from == to) {
+            return new DetailedConversion(amount, List.of(), BigDecimal.ONE);
+        }
+        final LocalDate effectiveDate = date.isAfter(LocalDate.now()) ? LocalDate.now() : date;
+        String key = from.name() + "->" + to.name() + "@" + effectiveDate;
+        BigDecimal cross = rateByKey.computeIfAbsent(key,
+                k -> fx.convert(BigDecimal.ONE, from, to, effectiveDate)
+        );
+        return new DetailedConversion(amount.multiply(cross), List.of(), cross);
+    }
+
+    public record DetailedConversion(BigDecimal convertedAmount, List<Object> warnings, BigDecimal crossRate) {}
 }

@@ -49,6 +49,10 @@ public class FxSettingsService {
     @Transactional
     public FxSettingsDTO update(FxSettingsDTO in) {
         FxSettings s = repo.findTopByOrderByIdAsc().orElseGet(FxSettings::new);
+        // Validation: base currency must not appear in quotes list
+        if (in.getQuotes() != null && in.getQuotes().contains(in.getBaseCurrency())) {
+            throw new IllegalArgumentException("Base currency cannot be included in quotes list");
+        }
         s.setBaseCurrency(in.getBaseCurrency());
         s.setApiBaseUrl(in.getApiBaseUrl());
         s.setQuotesCsv(joinCsv(in.getQuotes()));
@@ -63,8 +67,11 @@ public class FxSettingsService {
         props.setQuotes(set);
         props.setEnabled(in.isEnabled());
         props.setRefreshCron(in.getRefreshCron());
+        // Clear cached lookups after base currency change (if changed)
+        // NOTE: Cache invalidation for RateLookupService should be triggered via an application event here.
+        // Simplified: omitted to avoid direct self-call of transactional methods.
 
-        return getEffective();
+        return buildDtoFromEntity(s);
     }
 
     private static List<Currency> parseCsv(String csv) {
@@ -73,11 +80,22 @@ public class FxSettingsService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .map(Currency::valueOf)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static String joinCsv(List<Currency> list) {
         if (list == null || list.isEmpty()) return "";
         return list.stream().map(Enum::name).collect(Collectors.joining(","));
+    }
+
+    private FxSettingsDTO buildDtoFromEntity(FxSettings s) {
+        FxSettingsDTO dto = new FxSettingsDTO();
+        dto.setBaseCurrency(s.getBaseCurrency());
+        dto.setApiBaseUrl(s.getApiBaseUrl());
+        dto.setQuotes(parseCsv(s.getQuotesCsv()));
+        dto.setRefreshCron(s.getRefreshCron());
+        dto.setEnabled(s.isEnabled());
+        dto.setProvider(s.getProvider());
+        return dto;
     }
 }

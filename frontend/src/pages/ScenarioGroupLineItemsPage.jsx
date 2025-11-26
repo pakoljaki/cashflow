@@ -33,8 +33,6 @@ export default function ScenarioGroupLineItemsPage() {
   const [monthlyData, setMonthlyData] = useState([])
   const [realKpiData, setRealKpiData] = useState([])
 
-  // Fetch plans when groupKey changes (fetchPlans is re-created due to useCallback deps)
-
   const fetchPlans = useCallback(() => {
     (async () => {
       const token = localStorage.getItem('token')
@@ -136,17 +134,47 @@ export default function ScenarioGroupLineItemsPage() {
   }, [plans])
 
   const groupedAssumptions = useMemo(() => {
+    // We originally grouped strictly by assumptionId. When users add the same logical
+    // assumption (same title/date/type/category) to different scenarios at different times,
+    // the backend generates distinct assumptionIds, causing separate rows. To make the UI
+    // friendlier we collapse items across scenarios using a signature of stable fields.
+    // If multiple assumptionIds map to one signature we join them (e.g. "3,6").
     const map = new Map()
-    let fallback = 100000
     for (const it of allItems) {
-      const key = it.assumptionId ?? `missing-${fallback++}`
-      if (!map.has(key)) map.set(key, { assumptionId: it.assumptionId, worst: null, realistic: null, best: null })
-      const grp = map.get(key)
+      const signature = [
+        (it.title || '').trim().toLowerCase(),
+        it.type || '',
+        // one-time items use transactionDate; recurring/category may have startDate/endDate
+        it.transactionDate || it.startDate || '',
+        it.categoryId || ''
+      ].join('|')
+      if (!map.has(signature)) {
+        map.set(signature, { assumptionIds: new Set(), worst: null, realistic: null, best: null })
+      }
+      const grp = map.get(signature)
+      if (it.assumptionId != null) grp.assumptionIds.add(it.assumptionId)
       if (it.scenario === 'WORST') grp.worst = it
       else if (it.scenario === 'REALISTIC') grp.realistic = it
       else if (it.scenario === 'BEST') grp.best = it
     }
-    return Array.from(map.values())
+    const groups = Array.from(map.values()).map(g => ({
+      assumptionId: g.assumptionIds.size === 0
+        ? null
+        : (g.assumptionIds.size === 1
+            ? [...g.assumptionIds][0]
+            : [...g.assumptionIds].sort((a,b)=>a-b).join(',')),
+      worst: g.worst,
+      realistic: g.realistic,
+      best: g.best
+    }))
+    // Sort deterministically by first numeric assumption id if present
+    groups.sort((a,b) => {
+      const aFirst = a.assumptionId ? Number(String(a.assumptionId).split(',')[0]) : Infinity
+      const bFirst = b.assumptionId ? Number(String(b.assumptionId).split(',')[0]) : Infinity
+      if (!Number.isNaN(aFirst) && !Number.isNaN(bFirst)) return aFirst - bFirst
+      return 0
+    })
+    return groups
   }, [allItems])
 
   async function handleDelete(item) {

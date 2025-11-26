@@ -113,7 +113,6 @@ class KpiDashboardControllerTest {
         plan.setStartDate(LocalDate.of(2024, 1, 1));
 
         KpiDashboardDTO kpiDashboard = new KpiDashboardDTO();
-        // baseCurrency is null
         kpiDashboard.setTotalRevenue(new java.math.BigDecimal("10000.0"));
 
         when(planRepository.findById(planId)).thenReturn(Optional.of(plan));

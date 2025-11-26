@@ -7,6 +7,9 @@ import com.akosgyongyosi.cashflow.entity.LineItemType;
 import com.akosgyongyosi.cashflow.entity.PlanLineItem;
 import com.akosgyongyosi.cashflow.service.forecast.ForecastStrategy;
 import com.akosgyongyosi.cashflow.service.fx.FxConversionContext;
+import com.akosgyongyosi.cashflow.service.fx.FxService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -17,6 +20,12 @@ import java.util.List;
 @Component
 public class RecurringTransactionStrategy implements ForecastStrategy {
 
+    private static final Logger log = LoggerFactory.getLogger(RecurringTransactionStrategy.class);
+
+    public RecurringTransactionStrategy(FxService fxService) {
+        // fxService retained in case future enhancements need conversions beyond static context
+    }
+
     @Override
     public boolean supports(LineItemType type) {
         return type == LineItemType.RECURRING;
@@ -24,31 +33,67 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
 
     @Override
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
-        List<LocalDate> transactionDates = calculateRecurringDates(plan, item);
+        log.debug("RecurringStrategy BEGIN itemId={} title='{}' currency={} isApplied={}", item.getId(), item.getTitle(), item.getCurrency(), item.getIsApplied());
 
-        if (!item.getIsApplied()) {
-            item.setIsApplied(true);
-        } else {
+        // Guard: required fields
+        if (item.getStartDate() == null || item.getEndDate() == null || item.getFrequency() == null) {
+            log.warn("RecurringStrategy MISSING_FIELDS itemId={} startDate={} endDate={} frequency={} -> SKIP", item.getId(), item.getStartDate(), item.getEndDate(), item.getFrequency());
+            return; // do NOT mark applied so a later fix can re-run
+        }
+
+        if (Boolean.TRUE.equals(item.getIsApplied())) {
+            log.debug("RecurringStrategy SKIP_ALREADY_APPLIED itemId={}", item.getId());
+            return;
+        }
+
+        List<LocalDate> transactionDates;
+        try {
+            transactionDates = calculateRecurringDates(item);
+        } catch (Exception ex) {
+            log.error("RecurringStrategy DATE_CALC_ERROR itemId={} message={}", item.getId(), ex.getMessage());
+            return; // keep isApplied=false so retriable
+        }
+
+        if (transactionDates.isEmpty()) {
+            log.warn("RecurringStrategy NO_DATES itemId={} startDate={} endDate={} frequency={}", item.getId(), item.getStartDate(), item.getEndDate(), item.getFrequency());
             return;
         }
 
         BigDecimal nativeAmt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
         Currency fromCurrency = item.getCurrency() != null ? item.getCurrency() : FxConversionContext.base();
 
+        int success = 0;
         for (LocalDate date : transactionDates) {
-            HistoricalTransaction newTx = new HistoricalTransaction();
-            newTx.setCashflowPlan(plan);
-            newTx.setTransactionDate(date);
+            if (date == null) { // Defensive: should never happen now
+                log.warn("RecurringStrategy NULL_DATE itemId={} frequency={} listSize={}", item.getId(), item.getFrequency(), transactionDates.size());
+                continue;
+            }
+            try {
+                HistoricalTransaction newTx = new HistoricalTransaction();
+                newTx.setCashflowPlan(plan);
+                newTx.setTransactionDate(date);
+                BigDecimal amountBase = FxConversionContext.convert(date, fromCurrency, nativeAmt);
+                newTx.setAmount(amountBase);
+                newTx.setOriginalAmount(nativeAmt);
+                newTx.setOriginalCurrency(fromCurrency);
+                newTx.setCategory(item.getCategory());
+                plan.getBaselineTransactions().add(newTx);
+                success++;
+                log.trace("RecurringStrategy TX_CREATED itemId={} date={} origCur={} origAmt={} baseAmt={}", item.getId(), date, fromCurrency, nativeAmt, amountBase);
+            } catch (Exception ex) {
+                log.error("RecurringStrategy TX_ERROR itemId={} date={} message={}", item.getId(), date, ex.getMessage());
+            }
+        }
 
-            BigDecimal amountBase = FxConversionContext.convert(date, fromCurrency, nativeAmt);
-            newTx.setAmount(amountBase);
-            newTx.setCategory(item.getCategory());
-
-            plan.getBaselineTransactions().add(newTx);
+        if (success > 0) {
+            item.setIsApplied(true); // mark applied only if at least one transaction is created
+            log.debug("RecurringStrategy COMPLETE itemId={} successTx={} totalPlanned={}", item.getId(), success, transactionDates.size());
+        } else {
+            log.warn("RecurringStrategy NO_SUCCESS itemId={} plannedDates={}", item.getId(), transactionDates.size());
         }
     }
 
-    private List<LocalDate> calculateRecurringDates(CashflowPlan plan, PlanLineItem item) {
+    private List<LocalDate> calculateRecurringDates(PlanLineItem item) {
         List<LocalDate> dates = new ArrayList<>();
         LocalDate startDate = item.getStartDate();
         LocalDate endDate = item.getEndDate();

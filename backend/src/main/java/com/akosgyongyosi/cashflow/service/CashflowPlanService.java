@@ -38,7 +38,7 @@ public class CashflowPlanService {
 
     @Transactional
     public CashflowPlan createPlanForInterval(String planName, LocalDate start, LocalDate end, String groupKey) {
-        return doCreatePlan(planName, start, end, ScenarioType.REALISTIC, BigDecimal.ZERO, groupKey);
+        return doCreatePlan(planName, start, end, ScenarioType.REALISTIC, BigDecimal.ZERO, groupKey, null);
     }
 
     @Transactional
@@ -48,7 +48,7 @@ public class CashflowPlanService {
                                               ScenarioType scenario,
                                               BigDecimal startBalance,
                                               String groupKey) {
-        return doCreatePlan(planName, start, end, scenario, startBalance, groupKey);
+        return doCreatePlan(planName, start, end, scenario, startBalance, groupKey, null);
     }
 
     // Internal helper avoids transactional self-invocation warning
@@ -57,7 +57,8 @@ public class CashflowPlanService {
                                       LocalDate end,
                                       ScenarioType scenario,
                                       BigDecimal startBalance,
-                                      String groupKey) {
+                                      String groupKey,
+                                      Currency baseCurrency) {
         CashflowPlan plan = new CashflowPlan();
         plan.setPlanName(planName);
         plan.setStartDate(start);
@@ -67,9 +68,9 @@ public class CashflowPlanService {
         plan.setScenario(scenario);
         plan.setStartBalance(startBalance);
     plan.setBaselineTransactions(new ArrayList<>());
-    // For now default to HUF if any HUF transactions exist in prior year, else EUR. (Simple heuristic.)
-    Currency inferred = inferBaseCurrency(start, end);
-    plan.setBaseCurrency(inferred);
+    // Use the provided baseCurrency if specified, otherwise infer from prior year transactions
+    Currency effectiveBaseCurrency = (baseCurrency != null) ? baseCurrency : inferBaseCurrency(start, end);
+    plan.setBaseCurrency(effectiveBaseCurrency);
 
     List<Transaction> lastYearTransactions = transactionRepository
         .findByBookingDateBetween(start.minusYears(1), end.minusYears(1));
@@ -84,12 +85,12 @@ public class CashflowPlanService {
     }
 
     @Transactional
-    public List<CashflowPlan> createAllScenarioPlans(String basePlanName, LocalDate start, LocalDate end, BigDecimal startBalance) {
+    public List<CashflowPlan> createAllScenarioPlans(String basePlanName, LocalDate start, LocalDate end, BigDecimal startBalance, Currency baseCurrency) {
         String groupKey = UUID.randomUUID().toString(); 
 
-    CashflowPlan worst = doCreatePlan(basePlanName + "-WORST", start, end, ScenarioType.WORST, startBalance, groupKey);
-    CashflowPlan real = doCreatePlan(basePlanName + "-REALISTIC", start, end, ScenarioType.REALISTIC, startBalance, groupKey);
-    CashflowPlan best = doCreatePlan(basePlanName + "-BEST", start, end, ScenarioType.BEST, startBalance, groupKey);
+    CashflowPlan worst = doCreatePlan(basePlanName + "-WORST", start, end, ScenarioType.WORST, startBalance, groupKey, baseCurrency);
+    CashflowPlan real = doCreatePlan(basePlanName + "-REALISTIC", start, end, ScenarioType.REALISTIC, startBalance, groupKey, baseCurrency);
+    CashflowPlan best = doCreatePlan(basePlanName + "-BEST", start, end, ScenarioType.BEST, startBalance, groupKey, baseCurrency);
 
         return List.of(worst, real, best);
     }

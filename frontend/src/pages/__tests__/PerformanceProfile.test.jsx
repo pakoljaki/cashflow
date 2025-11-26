@@ -5,16 +5,13 @@ import MonthlyBarChart from '../../components/MonthlyBarChart'
 import DualAmount from '../../components/DualAmount'
 import { CurrencyProvider } from '../../context/CurrencyContext'
 
-// Polyfill ResizeObserver for Recharts ResponsiveContainer in test environment
 class RO {
-  observe() { /* noop for test perf */ }
-  unobserve() { /* noop */ }
-  disconnect() { /* noop */ }
+  observe() { }
+  unobserve() { }
+  disconnect() { }
 }
-// Assign using globalThis to satisfy lint preference
 globalThis.ResizeObserver = globalThis.ResizeObserver || RO
 
-// Synthetic KPI monthly dataset to approximate real rendering complexity
 const makeData = (months = 12) => Array.from({ length: months }, (_, i) => ({
   month: i + 1,
   totalIncome: 10000 + i * 123,
@@ -75,15 +72,12 @@ describe('Performance profiling (approximate)', () => {
       render(<PerfScenario />)
     })
 
-  // Basic assertions to ensure components rendered
   expect(screen.getByRole('table')).toBeInTheDocument()
   expect(screen.getByText(/Open Balance/)).toBeInTheDocument()
   expect(screen.getByText(/48,000 HUF/)).toBeInTheDocument()
-  // Ensure profiler captured all target component ids
   const ids = measures.map(m => m.id)
   expect(ids).toEqual(expect.arrayContaining(['MonthlyDataTable','MonthlyBarChart','DualAmount']))
 
-    // Emit summary to console for developer review
     const summary = measures.reduce((acc, m) => {
       acc[m.id] = acc[m.id] || { renders: 0, total: 0, base: 0 }
       acc[m.id].renders += 1
@@ -91,9 +85,7 @@ describe('Performance profiling (approximate)', () => {
       acc[m.id].base += m.baseDuration
       return acc
     }, {})
-    // Sort by total duration
     const ordered = Object.entries(summary).sort((a,b) => b[1].total - a[1].total)
-    // Log structured summary (can be copied into README or further tooling)
     console.log('FX Performance Summary:', ordered.map(([id, stats]) => ({
       id,
       renders: stats.renders,

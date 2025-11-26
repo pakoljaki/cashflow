@@ -74,7 +74,7 @@ class CashflowPlanServiceTest {
     void createAllScenarioPlans_returnsThreeWithDistinctKeys() {
         LocalDate s = LocalDate.now();
         when(planRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        List<CashflowPlan> list = svc.createAllScenarioPlans("X", s, s, BigDecimal.ZERO);
+        List<CashflowPlan> list = svc.createAllScenarioPlans("X", s, s, BigDecimal.ZERO, Currency.HUF);
         assertThat(list).hasSize(3)
             .extracting(CashflowPlan::getScenario)
             .containsExactly(ScenarioType.WORST, ScenarioType.REALISTIC, ScenarioType.BEST);

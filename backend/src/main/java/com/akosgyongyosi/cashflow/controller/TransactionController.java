@@ -1,19 +1,26 @@
 package com.akosgyongyosi.cashflow.controller;
 
+import com.akosgyongyosi.cashflow.dto.BulkCategoryRequestDTO;
+import com.akosgyongyosi.cashflow.dto.CategoryUpdateRequestDTO;
 import com.akosgyongyosi.cashflow.entity.Transaction;
 import com.akosgyongyosi.cashflow.entity.TransactionCategory;
 import com.akosgyongyosi.cashflow.entity.TransactionDirection;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
+
+    private static final Logger log = LoggerFactory.getLogger(TransactionController.class);
 
     private final TransactionRepository transactionRepository;
     private final TransactionCategoryRepository categoryRepository;
@@ -27,7 +34,7 @@ public class TransactionController {
     @GetMapping
     public List<Transaction> getAllTransactions() {
         List<Transaction> allTx = transactionRepository.findAll();
-        System.out.println("DEBUG: getAllTransactions() returning " + allTx.size() + " rows");
+        log.debug("getAllTransactions() returning {} rows", allTx.size());
         return allTx;
     }
     
@@ -44,9 +51,9 @@ public class TransactionController {
     }
 
     @PutMapping("/{transactionId}/category")
-    public ResponseEntity<?> updateTransactionCategory(
-            @PathVariable Long transactionId,
-            @RequestBody CategoryUpdateRequest request) {
+    public ResponseEntity<Object> updateTransactionCategory(
+            @PathVariable long transactionId,
+            @RequestBody CategoryUpdateRequestDTO request) {
 
         Optional<Transaction> txOpt = transactionRepository.findById(transactionId);
         if (txOpt.isEmpty()) {
@@ -83,7 +90,7 @@ public class TransactionController {
     }
 
     @PutMapping("/bulk-category")
-    public ResponseEntity<?> assignBulkCategory(@RequestBody BulkCategoryRequest request) {
+    public ResponseEntity<Object> assignBulkCategory(@RequestBody BulkCategoryRequestDTO request) {
         if (request.getTransactionIds() == null || request.getTransactionIds().isEmpty()) {
             return ResponseEntity.badRequest().body("No transaction IDs provided.");
         }
@@ -92,13 +99,15 @@ public class TransactionController {
             return ResponseEntity.badRequest().body("No categoryId provided.");
         }
 
-        Optional<TransactionCategory> catOpt = categoryRepository.findById(request.getCategoryId());
+        Long categoryId = Objects.requireNonNull(request.getCategoryId(), "categoryId must not be null");
+        Optional<TransactionCategory> catOpt = categoryRepository.findById(categoryId);
         if (catOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Category not found with ID: " + request.getCategoryId());
         }
         TransactionCategory category = catOpt.get();
 
-        List<Transaction> txList = transactionRepository.findAllById(request.getTransactionIds());
+        List<Long> transactionIds = Objects.requireNonNull(request.getTransactionIds());
+        List<Transaction> txList = transactionRepository.findAllById(transactionIds);
         if (txList.isEmpty()) {
             return ResponseEntity.badRequest().body("No matching transactions found for given IDs.");
         }
@@ -117,36 +126,12 @@ public class TransactionController {
     }
 
     @PostMapping("/categories")
-    public ResponseEntity<?> createCategory(@RequestBody TransactionCategory newCategory) {
+    public ResponseEntity<Object> createCategory(@RequestBody TransactionCategory newCategory) {
         if (categoryRepository.findByName(newCategory.getName()).isPresent()) {
             return ResponseEntity.badRequest().body("Category already exists.");
         }
 
         TransactionCategory savedCategory = categoryRepository.save(newCategory);
         return ResponseEntity.ok(savedCategory);
-    }
-
-    public static class CategoryUpdateRequest {
-        private String categoryName;
-        private boolean createNewCategory;
-        private String description;
-
-        public String getCategoryName() { return categoryName; }
-        public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
-        public boolean isCreateNewCategory() { return createNewCategory; }
-        public void setCreateNewCategory(boolean createNewCategory) { this.createNewCategory = createNewCategory; }
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
-    }
-
-    
-    public static class BulkCategoryRequest {
-        private List<Long> transactionIds;
-        private Long categoryId;
-
-        public List<Long> getTransactionIds() { return transactionIds; }
-        public void setTransactionIds(List<Long> transactionIds) { this.transactionIds = transactionIds; }
-        public Long getCategoryId() { return categoryId; }
-        public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     }
 }

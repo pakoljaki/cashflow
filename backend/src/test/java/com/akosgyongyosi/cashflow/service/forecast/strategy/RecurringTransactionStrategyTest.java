@@ -32,7 +32,7 @@ class RecurringTransactionStrategyTest {
         lenient().when(fxService.convert(any(BigDecimal.class), any(Currency.class), any(Currency.class), any(LocalDate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        strat = new RecurringTransactionStrategy();
+    strat = new RecurringTransactionStrategy(fxService);
         plan = new CashflowPlan();
         plan.setStartDate(LocalDate.of(2025, 7, 1));
 
@@ -245,5 +245,28 @@ class RecurringTransactionStrategyTest {
         assertThat(plan.getBaselineTransactions()).hasSize(2);
         assertThat(plan.getBaselineTransactions().get(0).getAmount())
                 .isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void applyForecast_shouldPreserveOriginalAmountAndCurrency() {
+        TransactionCategory cat = new TransactionCategory();
+        
+        PlanLineItem item = new PlanLineItem();
+        item.setType(LineItemType.RECURRING);
+        item.setFrequency(Frequency.MONTHLY);
+        item.setAmount(BigDecimal.valueOf(500));
+        item.setCurrency(Currency.EUR);
+        item.setCategory(cat);
+        item.setStartDate(LocalDate.of(2025, 1, 1));
+        item.setEndDate(LocalDate.of(2025, 3, 1));
+        item.setIsApplied(false);
+
+        strat.applyForecast(plan, item);
+
+        assertThat(plan.getBaselineTransactions()).hasSize(3);
+        for (HistoricalTransaction tx : plan.getBaselineTransactions()) {
+            assertThat(tx.getOriginalAmount()).isEqualByComparingTo(BigDecimal.valueOf(500));
+            assertThat(tx.getOriginalCurrency()).isEqualTo(Currency.EUR);
+        }
     }
 }

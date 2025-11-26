@@ -20,7 +20,7 @@ public class FxScheduler {
 
     @Scheduled(cron = "#{@fxProperties.refreshCron}")
     public void daily() {
-        if (!props.isEnabled()) return;
+        if (!props.isEnabled() || !props.isDynamicFetchEnabled()) return; // disable daily runtime ingestion in cache-only mode
         ingestion.fetchAndUpsert(LocalDate.now());
     }
 }

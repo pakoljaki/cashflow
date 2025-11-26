@@ -86,15 +86,13 @@ public class CashflowPlanController {
         LocalDate end   = request.getEndDate();
         if (start.isAfter(end)) return ResponseEntity.badRequest().build();
         BigDecimal startingBalance = request.getStartBalance() != null ? request.getStartBalance() : BigDecimal.ZERO;
+        Currency base = request.getBaseCurrency() != null ? request.getBaseCurrency() : Currency.HUF;
 
         List<CashflowPlan> threePlans = planService.createAllScenarioPlans(
-                request.getBasePlanName(), start, end, startingBalance
+                request.getBasePlanName(), start, end, startingBalance, base
         );
-        Currency base = request.getBaseCurrency() != null ? request.getBaseCurrency() : Currency.HUF;
-        for (CashflowPlan p : threePlans) {
-            p.setBaseCurrency(base);
-            planRepository.save(p);
-        }
+        // Plans already have correct baseCurrency set by service, just save them
+        threePlans.forEach(planRepository::save);
         return ResponseEntity.ok(threePlans);
     }
 
