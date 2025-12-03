@@ -29,10 +29,8 @@ public class KpiDisplayCurrencyConverter {
         FxRequestCache cache = new FxRequestCache(fxService);
 
     LocalDate startConvDate = periodStart.minusDays(1);
-    // Preserve original start balance
     src.setOriginalStartBalance(src.getStartBalance());
     src.setStartBalanceRateDate(startConvDate.toString());
-    // Provider fallback (should match ingestion provider); adjust if dynamic provider added
     src.setStartBalanceRateSource("ECB/Frankfurter");
     src.setBaseCurrency(base.name());
     src.setDisplayCurrency(display.name());
@@ -43,15 +41,12 @@ public class KpiDisplayCurrencyConverter {
             LocalDate monthStart = LocalDate.of(year, m.getMonth(), 1);
             LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
 
-            // Capture rates used per field for metadata (client may show tooltips)
-            // Using a lightweight map; MonthlyKpiDTO should expose a metadata map accessor if added.
-            var rateDate = monthEnd; // chosen rate evaluation date (end of month)
+            var rateDate = monthEnd; 
             m.setOriginalTotalIncome(m.getTotalIncome());
             m.setOriginalTotalExpense(m.getTotalExpense());
             m.setOriginalNetCashFlow(m.getNetCashFlow());
             m.setOriginalBankBalance(m.getBankBalance());
             m.setRateDate(rateDate.toString());
-            // Provider fallback
             m.setRateSource("ECB/Frankfurter");
             m.setTotalIncome(cache.convert(m.getTotalIncome(), base, display, rateDate));
             m.setTotalExpense(cache.convert(m.getTotalExpense(), base, display, rateDate));

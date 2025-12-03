@@ -4,23 +4,17 @@ import com.akosgyongyosi.cashflow.entity.Role;
 import com.akosgyongyosi.cashflow.entity.User;
 import com.akosgyongyosi.cashflow.repository.UserRepository;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @SpringBootApplication
-@EnableScheduling
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class CashflowApplication {
 
@@ -28,11 +22,7 @@ public class CashflowApplication {
         SpringApplication.run(CashflowApplication.class, args);
     }
 
-	/**
-     * On application startup, if there are no users in the database,
-     * create a default admin with email "admin@admin", password "admin",
-     * and roles ADMIN, USER.
-     */
+
     @Bean
     public CommandLineRunner initializeAdminUser(UserRepository userRepository,
                                                  PasswordEncoder passwordEncoder) {
@@ -42,13 +32,9 @@ public class CashflowApplication {
                 User admin = new User();
                 admin.setEmail("admin@admin");
                 admin.setPassword(passwordEncoder.encode("admin"));
-                Set<Role> roles = new HashSet<>(Arrays.asList(
-                    Role.ADMIN,
-                    Role.USER
-                ));
-                admin.setRoles(roles);
+                admin.setRole(Role.ADMIN);
                 userRepository.save(admin);
-                log.info("Default admin created: {} with roles {}", admin.getEmail(), roles);
+                log.info("Default admin created: {} with role {}", admin.getEmail(), Role.ADMIN);
             } else {
                 log.info("{} existing users found; skipping default admin creation", count);
             }

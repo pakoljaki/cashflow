@@ -44,7 +44,6 @@ public class KpiDashboardController {
         if (displayCurrency != null && displayCurrency != base) {
             dash = displayConverter.toDisplayCurrency(dash, plan.getStartDate(), base, displayCurrency);
         }
-        // Ensure baseCurrency always set for client reference
         if (dash.getBaseCurrency() == null) {
             dash.setBaseCurrency(base.name());
         }

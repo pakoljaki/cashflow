@@ -1,14 +1,8 @@
 import { useMemo } from 'react'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 import { formatAmount } from '../utils/numberFormatter'
 
-// Hook centralizing display currency formatting & dual detection logic.
-// Returns helpers:
-//  - displayCurrency, baseCurrency
-//  - formatDisplay(value)
-//  - legendSuffix() -> e.g. "HUF→EUR" or "HUF"
-//  - isConverted
-//  - dualMeta(nativeValue, convertedValue, opts)
+
 export function useDisplayCurrency() {
   const { displayCurrency, basePlanCurrency: baseCurrency } = useCurrency()
   const isConverted = displayCurrency !== baseCurrency
@@ -16,7 +10,6 @@ export function useDisplayCurrency() {
   const formatDisplay = (value, opts = {}) => formatAmount(value, { currency: displayCurrency, ...opts })
   const legendSuffix = () => isConverted ? `${baseCurrency}→${displayCurrency}` : displayCurrency
 
-  // Build dual metadata object consumed by <DualAmount />
   const dualMeta = useMemo(() => (nativeValue, convertedValue, { tooltip, forceSingle = false } = {}) => {
     const nativeFormatted = formatAmount(nativeValue, { currency: baseCurrency })
     const convertedFormatted = formatAmount(convertedValue, { currency: displayCurrency })

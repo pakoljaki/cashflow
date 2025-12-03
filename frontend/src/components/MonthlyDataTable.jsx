@@ -2,7 +2,7 @@ import '../styles/monthlydatatable.css'
 import { formatAmount } from '../utils/numberFormatter'
 import PropTypes from 'prop-types'
 import DualAmount from './DualAmount'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 
 export default function MonthlyDataTable({ startBalance = 0, originalStartBalance, baseCurrency = 'HUF', monthlyData = [] }) {
   const { displayCurrency } = useCurrency()
@@ -10,21 +10,19 @@ export default function MonthlyDataTable({ startBalance = 0, originalStartBalanc
   const rows   = [...monthlyData].sort((a, b) => a.month - b.month)
   const months = rows.map(r => r.month)
 
-  // Collect both income and expense categories separately
   const incomeCategories = new Set()
   const expenseCategories = new Set()
   for (const r of rows) {
-    // Use new separate maps if available; fall back to legacy combined map for backward compat
     const incomeMap = r.incomeAccountingCategorySums || {}
     const expenseMap = r.expenseAccountingCategorySums || {}
     
     for (const c of Object.keys(incomeMap)) {
-      if (c && c.trim()) { // Only add non-empty category names
+      if (c && c.trim()) { 
         incomeCategories.add(c)
       }
     }
     for (const c of Object.keys(expenseMap)) {
-      if (c && c.trim()) { // Only add non-empty category names
+      if (c && c.trim()) { 
         expenseCategories.add(c)
       }
     }

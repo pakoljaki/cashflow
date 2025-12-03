@@ -12,11 +12,11 @@ import java.math.BigDecimal;
 public class FxVolatilityDTO {
     private Currency base;
     private Currency quote;
-    private int windowDays;      // requested window size
-    private int sampleSize;      // actual number of observations
-    private BigDecimal mean;     // arithmetic mean
-    private BigDecimal stdDev;   // sample standard deviation (n-1)
+    private int windowDays;      
+    private int sampleSize;     
+    private BigDecimal mean;     
+    private BigDecimal stdDev;   
     private BigDecimal min;
     private BigDecimal max;
-    private boolean partial;     // true if sampleSize < windowDays
+    private boolean partial;
 }

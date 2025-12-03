@@ -18,10 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * Provides a single entry-point for obtaining an FX rate and accompanying metadata + warnings.
- * This is an initial scaffolding; advanced caching and concurrency controls will be layered later.
- */
+
 @Service
 public class RateLookupService {
 
@@ -29,7 +26,7 @@ public class RateLookupService {
 
     private final ExchangeRateRepository repo;
     private final FxRateEnsurer ensurer;
-    private final ExchangeRateCache fxCache; // preloaded historical rates
+    private final ExchangeRateCache fxCache; 
     private final FxProperties props;
     private final FxLookupAuditService auditService;
 

@@ -1,7 +1,10 @@
 package com.akosgyongyosi.cashflow.entity;
 
 import jakarta.persistence.*;
-
+import lombok.Getter;
+import lombok.Setter;
+@Getter
+@Setter
 @Entity
 @Table(name = "fx_settings")
 public class FxSettings {
@@ -28,18 +31,4 @@ public class FxSettings {
 
     @Column(name = "provider", nullable = false, length = 64)
     private String provider;
-
-    public Long getId() { return id; }
-    public Currency getBaseCurrency() { return baseCurrency; }
-    public void setBaseCurrency(Currency baseCurrency) { this.baseCurrency = baseCurrency; }
-    public String getApiBaseUrl() { return apiBaseUrl; }
-    public void setApiBaseUrl(String apiBaseUrl) { this.apiBaseUrl = apiBaseUrl; }
-    public String getQuotesCsv() { return quotesCsv; }
-    public void setQuotesCsv(String quotesCsv) { this.quotesCsv = quotesCsv; }
-    public String getRefreshCron() { return refreshCron; }
-    public void setRefreshCron(String refreshCron) { this.refreshCron = refreshCron; }
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
-    public String getProvider() { return provider; }
-    public void setProvider(String provider) { this.provider = provider; }
 }

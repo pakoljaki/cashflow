@@ -20,9 +20,7 @@ public final class FxRequestCache {
         return convertDetailed(amount, from, to, date).convertedAmount();
     }
 
-    /**
-     * New detailed conversion entry point providing metadata; caches only the cross rate for now.
-     */
+   
     public DetailedConversion convertDetailed(BigDecimal amount, Currency from, Currency to, LocalDate date) {
         if (from == to) {
             return new DetailedConversion(amount, List.of(), BigDecimal.ONE);

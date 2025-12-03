@@ -34,27 +34,23 @@ public class ExchangeRate {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "base_currency", length = 3, nullable = false)
-    private Currency baseCurrency; // e.g., EUR (canonical base)
+    private Currency baseCurrency; 
 
     @Enumerated(EnumType.STRING)
     @Column(name = "quote_currency", length = 3, nullable = false)
-    private Currency quoteCurrency; // e.g., HUF, USD
+    private Currency quoteCurrency;
 
     @Column(name = "rate_mid", precision = 18, scale = 8, nullable = false)
-    private BigDecimal rateMid; // base -> quote mid
+    private BigDecimal rateMid; 
 
     @Column(name = "provider", length = 32, nullable = false)
-    private String provider; // "ECB", "MNB", etc.
+    private String provider;
 
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt = Instant.now();
 
-        /**
-         * True if this rate was stored as a provisional placeholder (e.g. for a future booking date
-         * where the real historical quote does not yet exist). Such rates SHOULD be reconciled later
-         * by a scheduled job that back-fills the real historical rate once the booking date is in the past.
-         */
-                @Column(name = "provisional", nullable = false, columnDefinition = "bit not null default 0")
+       
+        @Column(name = "provisional", nullable = false, columnDefinition = "bit not null default 0")
         private boolean provisional = false;
 
 }

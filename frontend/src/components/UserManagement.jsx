@@ -83,7 +83,7 @@ export default function UserManagement({ onUserChange }) {
     }
   }
 
-  const isAdmin = (user) => user.roles && user.roles.some(r => r === 'ADMIN')
+  const isAdmin = (user) => user.role === 'ADMIN'
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

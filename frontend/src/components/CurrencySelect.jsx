@@ -3,18 +3,6 @@ import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/
 import { CURRENCIES } from '../constants/currencies'
 import PropTypes from 'prop-types'
 
-/*
-  Reusable currency selector.
-
-  Props:
-    value: string (selected currency code)
-    onChange: function(newCode)
-    label: string (defaults to 'Currency')
-    exclude: array of currency codes to hide
-    disabledOptions: array of currency codes to disable (still shown)
-    helperText: optional helper text string / node
-    size, fullWidth, variant, sx: forwarded to MUI components
-*/
 
 export default function CurrencySelect({
   value,

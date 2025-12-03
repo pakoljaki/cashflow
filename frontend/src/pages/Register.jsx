@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MyButton from '../components/MyButton';
 import '../styles/register.css';
 
 const Register = () => {
@@ -33,7 +34,7 @@ const Register = () => {
       <form className="register-form" onSubmit={handleSubmit}>
         <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
         <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
-        <button type="submit">Register</button>
+        <MyButton type="submit">Register</MyButton>
       </form>
       <p>Already have an account? <span onClick={() => navigate('/login')} style={{ color: 'blue', cursor: 'pointer' }}>Login</span></p>
     </div>

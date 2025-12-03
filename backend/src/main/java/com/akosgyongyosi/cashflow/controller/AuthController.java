@@ -9,6 +9,7 @@ import com.akosgyongyosi.cashflow.entity.Role;
 import com.akosgyongyosi.cashflow.entity.User;
 import com.akosgyongyosi.cashflow.repository.UserRepository;
 import com.akosgyongyosi.cashflow.security.JwtUtil;
+import com.akosgyongyosi.cashflow.service.AuditLogService;
 
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -20,8 +21,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,20 +34,24 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final SecurityConfig securityConfig;
+    private final AuditLogService auditLogService;
 
     public AuthController(UserRepository userRepository,
                           JwtUtil jwtUtil,
                           AuthenticationManager authenticationManager,
-                          SecurityConfig securityConfig) {
+                          SecurityConfig securityConfig,
+                          AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
         this.securityConfig = securityConfig;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponseDTO> registerUser(@RequestBody RegisterRequestDTO request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            auditLogService.logFailedAction(request.getEmail(), "REGISTER_USER", "EMAIL_ALREADY_EXISTS");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new RegisterResponseDTO("Email is already taken.", null));
         }
@@ -59,24 +62,21 @@ public class AuthController {
         String hashedPassword = securityConfig.passwordEncoder().encode(rawPassword);
         user.setPassword(hashedPassword);
 
-        Set<Role> roleSet = new HashSet<>();
-        if (request.getRoles() == null || request.getRoles().isEmpty()) {
-            roleSet.add(Role.USER);
-        } else {
-            for (String roleStr : request.getRoles()) {
-                try {
-                    Role role = Role.valueOf(roleStr.trim().toUpperCase());
-                    roleSet.add(role);
-                } catch (IllegalArgumentException e) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body(new RegisterResponseDTO("Invalid role provided: " + roleStr, null));
-                }
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            String roleStr = request.getRoles().get(0);
+            try {
+                Role role = Role.valueOf(roleStr.trim().toUpperCase());
+                user.setRole(role);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new RegisterResponseDTO("Invalid role provided: " + roleStr, null));
             }
         }
-        user.setRoles(roleSet);
 
         userRepository.save(user);
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRoles());
+        auditLogService.logAction(user.getEmail(), "REGISTER_USER", 
+            java.util.Map.of("role", user.getRole().name()));
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
         return ResponseEntity.ok(new RegisterResponseDTO("User registered successfully.", token));
     }
 
@@ -89,6 +89,8 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
+        auditLogService.logAction(userDetails.getUsername(), "LOGIN");
+        
         String token = jwtUtil.generateToken(userDetails);
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(auth -> auth.getAuthority())

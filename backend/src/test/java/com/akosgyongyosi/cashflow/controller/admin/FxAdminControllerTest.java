@@ -1,11 +1,12 @@
 package com.akosgyongyosi.cashflow.controller.admin;
 
-import com.akosgyongyosi.cashflow.dto.IngestionRangeSummaryDTO;
-import com.akosgyongyosi.cashflow.dto.IngestionSummaryDTO;
+import com.akosgyongyosi.cashflow.config.FxProperties;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.ExchangeRate;
 import com.akosgyongyosi.cashflow.repository.ExchangeRateRepository;
-import com.akosgyongyosi.cashflow.service.fx.FxIngestionService;
+import com.akosgyongyosi.cashflow.service.AuditLogService;
+import com.akosgyongyosi.cashflow.service.fx.FxRefreshService;
+import com.akosgyongyosi.cashflow.service.fx.FxSettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,38 +27,25 @@ import static org.mockito.Mockito.when;
 class FxAdminControllerTest {
 
     @Mock
-    private FxIngestionService ingestionService;
+    private ExchangeRateRepository exchangeRateRepository;
 
     @Mock
-    private ExchangeRateRepository exchangeRateRepository;
+    private FxSettingsService fxSettingsService;
+
+    @Mock
+    private AuditLogService auditLogService;
 
     private FxAdminController controller;
 
+    @Mock
+    private FxProperties fxProperties;
+
+    @Mock
+    private FxRefreshService fxRefreshService;
+
     @BeforeEach
     void setUp() {
-        controller = new FxAdminController(ingestionService, exchangeRateRepository);
-    }
-
-    @Test
-    void refresh_shouldReturnIngestionSummary() {
-        LocalDate start = LocalDate.of(2025, 11, 1);
-        LocalDate end = LocalDate.of(2025, 11, 3);
-        
-        IngestionRangeSummaryDTO summary = new IngestionRangeSummaryDTO(start, end);
-        summary.add(new IngestionSummaryDTO(start, 5, 3, Currency.EUR, 2));
-        when(ingestionService.fetchAndUpsert(start, end)).thenReturn(summary);
-
-        ResponseEntity<?> response = controller.refresh(start, end);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isInstanceOf(Map.class);
-        
-        @SuppressWarnings("unchecked")
-        Map<String, Object> body = (Map<String, Object>) response.getBody();
-        assertThat(body).containsEntry("start", start);
-        assertThat(body).containsEntry("end", end);
-        assertThat(body).containsEntry("inserted", 5);
-        assertThat(body).containsEntry("updated", 3);
+        controller = new FxAdminController(exchangeRateRepository, fxSettingsService, auditLogService, fxProperties, fxRefreshService);
     }
 
     @Test
@@ -115,23 +103,5 @@ class FxAdminControllerTest {
         assertThat(body).containsKey("HUF");
         assertThat(body).doesNotContainKey("USD");
         assertThat(body).doesNotContainKey("EUR");
-    }
-
-    @Test
-    void refresh_shouldHandleEmptyDateRange() {
-        LocalDate start = LocalDate.of(2025, 11, 1);
-        LocalDate end = LocalDate.of(2025, 11, 1);
-        
-        IngestionRangeSummaryDTO summary = new IngestionRangeSummaryDTO(start, end);
-        when(ingestionService.fetchAndUpsert(start, end)).thenReturn(summary);
-
-        ResponseEntity<?> response = controller.refresh(start, end);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
-        @SuppressWarnings("unchecked")
-        Map<String, Object> body = (Map<String, Object>) response.getBody();
-        assertThat(body).containsEntry("inserted", 0);
-        assertThat(body).containsEntry("updated", 0);
     }
 }

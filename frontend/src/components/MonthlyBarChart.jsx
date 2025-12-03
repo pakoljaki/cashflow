@@ -1,10 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import PropTypes from 'prop-types'
 import { formatAmount } from '../utils/numberFormatter'
-import { useDisplayCurrency } from '../hooks/useDisplayCurrency'
 
 const MonthlyBarChart = ({ data = [], displayCurrency, baseCurrency, showLegendHint = true }) => {
-  const { legendSuffix: suffixFn } = useDisplayCurrency()
   if (!data.length) return null
   const formattedData = data.map(it => ({
     month: `M${it.month}`,
@@ -12,7 +10,8 @@ const MonthlyBarChart = ({ data = [], displayCurrency, baseCurrency, showLegendH
     Expense: Number(it.totalExpense || 0)
   }))
   const converted = displayCurrency !== baseCurrency
-  const legendSuffix = suffixFn()
+  // Use the actual currencies from props instead of context
+  const legendSuffix = converted ? `${baseCurrency}→${displayCurrency}` : displayCurrency
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={formattedData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>

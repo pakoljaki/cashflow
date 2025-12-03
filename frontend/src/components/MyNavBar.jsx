@@ -20,7 +20,7 @@ export default function MyNavBar() {
               <MyButton variant="primary">Login</MyButton>
             </NavLink>
             <NavLink to="/admin" className="nav-button-link">
-              <MyButton variant="primary">Admin Panel</MyButton>
+              <MyButton variant="primary">Admin Page</MyButton>
             </NavLink>
             <NavLink to="/transactions" className="nav-button-link">
               <MyButton variant="primary">Transactions</MyButton>

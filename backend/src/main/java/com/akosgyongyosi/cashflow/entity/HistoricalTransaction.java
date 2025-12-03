@@ -12,7 +12,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-// we need this so historical data is immutable. We can modify this data when doing the forecasting, assumption making
 @Entity
 @Getter 
 @Setter
@@ -26,20 +25,11 @@ public class HistoricalTransaction {
 
     private LocalDate transactionDate;
 
-    /**
-     * Amount expressed in the plan's base currency (normalized value used for KPI math).
-     */
     private BigDecimal amount;
 
-    /**
-     * Original raw amount from the source transaction before conversion.
-     */
     @Column(name = "original_amount", precision = 18, scale = 4)
     private BigDecimal originalAmount;
 
-    /**
-     * Original currency of the source transaction; enables audit / re‑conversion if FX changes.
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "original_currency", length = 3)
     private Currency originalCurrency;

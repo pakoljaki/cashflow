@@ -91,7 +91,6 @@ public class CsvImportService {
             int saved = parseCsv(reader, fileCurrency);
             log.info("✓ {} transactions imported from upload {}", saved, originalFilename);
             
-            // Rename file in csv_imports directory if it exists
             if (originalFilename != null && !originalFilename.isBlank()) {
                 renameFileInImportDirectory(originalFilename);
             }
@@ -133,7 +132,6 @@ public class CsvImportService {
             }
         }
         
-        // Pre-fetch exchange rates for all transaction dates + 1 year forward
         if (!transactionDates.isEmpty()) {
             try {
                 fxService.ensureRatesForTransactionsWithForwardCoverage(transactionDates);
@@ -158,10 +156,8 @@ public class CsvImportService {
                                                    : TransactionDirection.POSITIVE;
             String transactionCode = r.get(7);
             String memo = r.size() > 8 ? r.get(8) : "";
-            // Optional currency override column (index 9)
             Currency rowCurrency = resolveRowCurrency(r, fileCurrency);
 
-            // Use helper (non transactional private) to create/find bank account
             BankAccount ourAccount = findOrCreateBankAccount(ourAcctNum, "Our Company", rowCurrency, null);
             if (ourAccount == null) {
                 log.warn("Skipping line (empty ourAccountNumber): {}", r);
@@ -184,7 +180,6 @@ public class CsvImportService {
             tx.setMemo(memo);
             tx.setTransactionMethod(TransactionMethod.TRANSFER);
 
-            // Try to match category by memo, but don't fail if not found
             try {
                 categoryRepository.findByName(memo)
                     .ifPresentOrElse(tx::setCategory,
@@ -206,9 +201,6 @@ public class CsvImportService {
         return new BigDecimal(raw.replace(",", "."));
     }
 
-    // Removed @Transactional (private helper)
-    // Finds existing bank account or creates new one. If existing account has different currency,
-    // uses the existing account's currency (database is authoritative).
     private BankAccount findOrCreateBankAccount(String accountNumber,
                                                 String owner,
                                                 Currency currency,

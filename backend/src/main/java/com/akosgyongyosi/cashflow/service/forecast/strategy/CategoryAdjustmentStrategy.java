@@ -21,7 +21,7 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
     @Override
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
         if (Boolean.TRUE.equals(item.getIsApplied())) {
-            return; // Already applied, skip to prevent double application
+            return; 
         }
         
         BigDecimal factor = BigDecimal.valueOf(item.getPercentChange());
@@ -38,6 +38,6 @@ public class CategoryAdjustmentStrategy implements ForecastStrategy {
             }
         }
         
-        item.setIsApplied(true); // Mark as applied AFTER processing all transactions
+        item.setIsApplied(true); 
     }
 }

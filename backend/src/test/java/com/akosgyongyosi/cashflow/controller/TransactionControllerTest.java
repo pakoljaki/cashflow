@@ -2,9 +2,12 @@ package com.akosgyongyosi.cashflow.controller;
 
 import com.akosgyongyosi.cashflow.dto.BulkCategoryRequestDTO;
 import com.akosgyongyosi.cashflow.dto.CategoryUpdateRequestDTO;
+import com.akosgyongyosi.cashflow.dto.RateMetaDTO;
+import com.akosgyongyosi.cashflow.dto.TransactionViewDTO;
 import com.akosgyongyosi.cashflow.entity.*;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
+import com.akosgyongyosi.cashflow.service.fx.FxService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,13 +28,15 @@ class TransactionControllerTest {
 
     private TransactionRepository transactionRepository;
     private TransactionCategoryRepository categoryRepository;
+    private FxService fxService;
     private TransactionController controller;
 
     @BeforeEach
     void setUp() {
         transactionRepository = mock(TransactionRepository.class);
         categoryRepository = mock(TransactionCategoryRepository.class);
-        controller = new TransactionController(transactionRepository, categoryRepository);
+        fxService = mock(FxService.class);
+        controller = new TransactionController(transactionRepository, categoryRepository, fxService);
     }
 
     @Test
@@ -40,11 +45,36 @@ class TransactionControllerTest {
         Transaction tx2 = createTransaction(2L, "TX2");
         when(transactionRepository.findAll()).thenReturn(List.of(tx1, tx2));
 
-    List<Transaction> result = controller.getAllTransactions();
+        List<TransactionViewDTO> result = controller.getAllTransactions(null);
 
-    assertThat(result)
-        .hasSize(2)
-        .containsExactly(tx1, tx2);
+        assertThat(result)
+            .hasSize(2)
+            .extracting(TransactionViewDTO::id)
+            .containsExactly(1L, 2L);
+        verifyNoInteractions(fxService);
+        }
+
+        @Test
+        void getAllTransactions_withDisplayCurrency_convertsValues() {
+        Transaction tx = createTransaction(1L, "TX1");
+        when(transactionRepository.findAll()).thenReturn(List.of(tx));
+        RateMetaDTO meta = new RateMetaDTO(LocalDate.of(2024, 1, 5), Currency.EUR, Currency.USD,
+            BigDecimal.valueOf(1.1), false, "TEST");
+        FxService.ConversionResult conversion = new FxService.ConversionResult(
+            BigDecimal.valueOf(310.12), List.of(), meta, meta);
+        when(fxService.convertWithDetails(any(BigDecimal.class), eq(Currency.HUF), eq(Currency.USD), any(LocalDate.class)))
+            .thenReturn(conversion);
+
+        List<TransactionViewDTO> dtos = controller.getAllTransactions("USD");
+
+        assertThat(dtos)
+            .singleElement()
+            .satisfies(dto -> {
+                assertThat(dto.convertedAmount()).isEqualByComparingTo("310.12");
+                assertThat(dto.displayCurrency()).isEqualTo(Currency.USD);
+                assertThat(dto.rateDate()).isEqualTo(LocalDate.of(2024, 1, 5));
+                assertThat(dto.rateSource()).isEqualTo("TEST");
+            });
     }
 
     @Test

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MyNavBar from './components/MyNavBar';
-import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
+import { CurrencyProvider, useCurrency } from './context/AppContext';
 import HomePage from './pages/HomePage';
 import Login from './pages/Login';
 import Register from './pages/Register';

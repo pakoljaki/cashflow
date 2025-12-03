@@ -17,17 +17,13 @@ public class MonthlyKpiDTO {
     private BigDecimal totalExpense = BigDecimal.ZERO;
     private BigDecimal netCashFlow = BigDecimal.ZERO;
     private BigDecimal bankBalance = BigDecimal.ZERO;
-    // Accounting categories: separate income and expense maps (always positive values)
     private Map<String, BigDecimal> incomeAccountingCategorySums = new HashMap<>();
     private Map<String, BigDecimal> expenseAccountingCategorySums = new HashMap<>();
-    // Legacy field for backward compatibility (deprecated - use above maps)
     private Map<String, BigDecimal> accountingCategorySums = new HashMap<>();
     private Map<String, BigDecimal> transactionCategorySums = new HashMap<>();
     private Map<String, String> transactionCategoryDirections = new HashMap<>();
-    // FX metadata
-    private String rateDate; // ISO date (month-end) of applied FX rate
-    private String rateSource; // provider identifier
-    // Original base currency values preserved after conversion for dual display
+    private String rateDate; 
+    private String rateSource; 
     private BigDecimal originalTotalIncome;
     private BigDecimal originalTotalExpense;
     private BigDecimal originalNetCashFlow;

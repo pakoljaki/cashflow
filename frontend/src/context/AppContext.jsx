@@ -2,14 +2,6 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import PropTypes from 'prop-types'
 import { CURRENCIES, isSupportedCurrency } from '../constants/currencies'
 
-/*
- CurrencyContext responsibilities:
-  - displayCurrency: what user wants to see amounts in
-  - basePlanCurrency: currency of the currently selected plan (set by pages that load a plan)
-  - quotes: list of available currencies (static for now)
-  - setDisplayCurrency, setBasePlanCurrency
-  - format helpers placeholder (will integrate number formatter later)
-*/
 
 const DEFAULT_DISPLAY = 'HUF';
 const LS_KEY = 'displayCurrency';
@@ -27,13 +19,12 @@ export const CurrencyContext = createContext({
 });
 
 export const CurrencyProvider = ({ children }) => {
-  // Provide a universal root object reference (browser window preferred)
   const root = useMemo(() => {
-    /* eslint-disable no-undef */
+    // eslint-disable-next-line no-undef
     if (typeof globalThis !== 'undefined') {
+      // eslint-disable-next-line no-undef
       return globalThis
     }
-    /* eslint-enable no-undef */
     return {}
   }, [])
 
@@ -46,16 +37,13 @@ export const CurrencyProvider = ({ children }) => {
     }
     return stored && isSupportedCurrency(stored) ? stored : DEFAULT_DISPLAY
   }
-  // Initialize display currency from localStorage; eslint rule falsely flags destructuring so suppressed.
-  // eslint-disable-next-line
+  
   const [displayCurrency, setDisplayCurrencyState] = useState(initDisplayCurrency())
   const [basePlanCurrency, setBasePlanCurrency] = useState(DEFAULT_DISPLAY)
   const [fxSettings, setFxSettings] = useState(null)
   const [fxEnabled, setFxEnabled] = useState(true)
   const [roles, setRoles] = useState([])
-  // Simple in-memory cache for KPI responses keyed by year|base|display
   const [kpiCache, setKpiCache] = useState({})
-  // Feature flags: allow runtime toggling of subsets (can be extended via settings or env)
   const [fxFeatureFlags, setFxFeatureFlags] = useState({
     dualAmounts: true,
     stalenessBadges: true,
@@ -72,11 +60,8 @@ export const CurrencyProvider = ({ children }) => {
     } catch(e) {
       console.warn('FX: unable to persist displayCurrency', e)
     }
-  // root only contains stable globalThis reference; safe to exclude
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync if localStorage is changed in another tab
   useEffect(() => {
     const handler = (e) => {
       if (e.key === LS_KEY && e.newValue && isSupportedCurrency(e.newValue)) {
@@ -85,11 +70,8 @@ export const CurrencyProvider = ({ children }) => {
     };
       root.addEventListener?.('storage', handler)
       return () => root.removeEventListener?.('storage', handler)
-  // root is stable global; ignoring dependency
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Helper: safely extract roles/authorities from JWT token
   const extractRolesFromToken = useCallback((jwt) => {
     if (!jwt) return []
     const segments = jwt.split('.')
@@ -106,18 +88,16 @@ export const CurrencyProvider = ({ children }) => {
     }
   }, [root])
 
-  // Initial roles extraction
   useEffect(() => {
     const token = localStorage.getItem('token')
     setRoles(extractRolesFromToken(token))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const refreshFxSettings = useCallback(async () => {
     const token = localStorage.getItem('token')
     if (!token) return
     try {
-      const res = await fetch('/api/settings/fx', { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch('/api/fx/settings', { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return
       const data = await res.json()
       setFxSettings(data)
@@ -140,7 +120,6 @@ export const CurrencyProvider = ({ children }) => {
   const unsupported = !isSupportedCurrency(displayCurrency)
   const effectiveDisplayCurrency = unsupported ? DEFAULT_DISPLAY : displayCurrency
 
-  // Effective flags honor global fxEnabled switch for graceful degradation
   const fxFlags = fxEnabled ? fxFeatureFlags : {
     dualAmounts: false,
     stalenessBadges: false,
@@ -150,7 +129,7 @@ export const CurrencyProvider = ({ children }) => {
   }
 
   const value = useMemo(() => ({
-    displayCurrency, // raw user selection
+    displayCurrency, 
     effectiveDisplayCurrency,
     basePlanCurrency,
     quotes: CURRENCIES,
@@ -166,11 +145,10 @@ export const CurrencyProvider = ({ children }) => {
     unsupportedDisplayCurrency: unsupported,
     getCachedKpi,
     setCachedKpi,
-    fxFeatureFlags, // raw adjustable flags
+    fxFeatureFlags, 
     setFxFeatureFlags,
-    fxFlags,        // effective flags (considering fxEnabled)
+    fxFlags,       
     aggregateRateStaleness: (monthlyData = [], { warnAfterDays: warn = fxSettings?.warnAfterDays ?? 2, staleAfterDays: stale = fxSettings?.staleAfterDays ?? 5 } = {}) => {
-      // Find oldest rateDate among entries where a rateDate exists.
       let oldestDate = null
       for (const row of monthlyData) {
         const rd = row?.rateDate
@@ -178,9 +156,7 @@ export const CurrencyProvider = ({ children }) => {
         if (!oldestDate || rd < oldestDate) oldestDate = rd
       }
       if (!oldestDate) return null
-      // Reuse classifyStaleness logic dynamically (import lazily to avoid circular refs if any)
       try {
-        // dynamic import is not necessary, but to keep context decoupled we replicate minimal logic
         const d = new Date(oldestDate + 'T00:00:00Z')
         const diffDays = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
         let level = 'fresh'

@@ -12,9 +12,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,9 +32,9 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void loadUserByUsername_shouldLoadUserWithSingleRole() {
+    void loadUserByUsername_shouldLoadUserWithUserRole() {
         String email = "user@example.com";
-        User user = createUser(email, "password123", Set.of(Role.USER));
+        User user = createUser(email, "password123", Role.USER);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
@@ -54,19 +52,19 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void loadUserByUsername_shouldLoadUserWithMultipleRoles() {
+    void loadUserByUsername_shouldLoadUserWithAdminRole() {
         String email = "admin@example.com";
-        User user = createUser(email, "adminpass", Set.of(Role.USER, Role.ADMIN));
+        User user = createUser(email, "adminpass", Role.ADMIN);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         UserDetails result = customUserDetailsService.loadUserByUsername(email);
 
         assertThat(result).isNotNull();
-        assertThat(result.getAuthorities()).hasSize(2);
+        assertThat(result.getAuthorities()).hasSize(1);
         assertThat(result.getAuthorities())
             .extracting(GrantedAuthority::getAuthority)
-            .containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+            .containsExactly("ROLE_ADMIN");
     }
 
     @Test
@@ -82,22 +80,9 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void loadUserByUsername_shouldHandleUserWithNoRoles() {
-        String email = "noroles@example.com";
-        User user = createUser(email, "password", new HashSet<>());
-
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-
-        UserDetails result = customUserDetailsService.loadUserByUsername(email);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getAuthorities()).isEmpty();
-    }
-
-    @Test
     void loadUserByUsername_shouldPrefixRolesWithROLE() {
         String email = "user@example.com";
-        User user = createUser(email, "password", Set.of(Role.USER));
+        User user = createUser(email, "password", Role.USER);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
@@ -111,7 +96,7 @@ class CustomUserDetailsServiceTest {
     @Test
     void loadUserByUsername_shouldHandleDifferentEmailFormats() {
         String email = "User.Name+tag@Example.COM";
-        User user = createUser(email, "password", Set.of(Role.USER));
+        User user = createUser(email, "password", Role.USER);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
@@ -124,7 +109,7 @@ class CustomUserDetailsServiceTest {
     @Test
     void loadUserByUsername_shouldCreateAccountEnabledByDefault() {
         String email = "user@example.com";
-        User user = createUser(email, "password", Set.of(Role.USER));
+        User user = createUser(email, "password", Role.USER);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
@@ -136,11 +121,11 @@ class CustomUserDetailsServiceTest {
         assertThat(result.isCredentialsNonExpired()).isTrue();
     }
 
-    private User createUser(String email, String password, Set<Role> roles) {
+    private User createUser(String email, String password, Role role) {
         User user = new User();
         user.setEmail(email);
         user.setPassword(password);
-        user.setRoles(roles);
+        user.setRole(role);
         return user;
     }
 }

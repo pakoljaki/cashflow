@@ -50,7 +50,7 @@ class CashflowPlanServiceTest {
         LocalDate start = LocalDate.of(2025,1,1);
         LocalDate end = LocalDate.of(2025,12,31);
         Transaction tx = new Transaction();
-        tx.setBookingDate(start.minusYears(1).plusDays(1)); // 2024-01-02
+        tx.setBookingDate(start.minusYears(1).plusDays(1));
         tx.setAmount(BigDecimal.valueOf(123));
         tx.setCurrency(Currency.HUF);
         TransactionCategory cat = new TransactionCategory();
@@ -93,7 +93,6 @@ class CashflowPlanServiceTest {
     void snapshot_converts_foreign_currency_to_base() {
         LocalDate start = LocalDate.of(2025,1,1);
         LocalDate end = LocalDate.of(2025,12,31);
-        // EUR transaction (should be converted)
         Transaction eurTx = new Transaction();
         eurTx.setBookingDate(LocalDate.of(2024,6,15));
         eurTx.setAmount(BigDecimal.valueOf(2500));
@@ -101,7 +100,6 @@ class CashflowPlanServiceTest {
         TransactionCategory catEur = new TransactionCategory();
         catEur.setDirection(TransactionDirection.POSITIVE);
         eurTx.setCategory(catEur);
-        // HUF transaction ensures base currency inferred as HUF
         Transaction hufTx = new Transaction();
         hufTx.setBookingDate(LocalDate.of(2024,3,10));
         hufTx.setAmount(BigDecimal.valueOf(10000));
@@ -111,22 +109,20 @@ class CashflowPlanServiceTest {
         hufTx.setCategory(catHuf);
         when(txRepo.findByBookingDateBetween(start.minusYears(1), end.minusYears(1)))
             .thenReturn(List.of(eurTx, hufTx));
-        // Mock FX conversion: EUR->HUF rate for 2024-06-15 is 400 (convert 1 EUR)
         when(fxService.convert(BigDecimal.ONE, Currency.EUR, Currency.HUF, eurTx.getBookingDate()))
             .thenReturn(BigDecimal.valueOf(400));
         when(planRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         CashflowPlan plan = svc.createPlanForInterval("FX", start, end, ScenarioType.REALISTIC, BigDecimal.ZERO, UUID.randomUUID().toString());
-        assertThat(plan.getBaseCurrency()).isEqualTo(Currency.HUF); // inferred base due to presence of HUF transaction
+        assertThat(plan.getBaseCurrency()).isEqualTo(Currency.HUF); 
         assertThat(plan.getBaselineTransactions()).hasSize(2);
         HistoricalTransaction eurHist = plan.getBaselineTransactions().stream()
             .filter(ht -> ht.getOriginalCurrency() == Currency.EUR)
             .findFirst().orElseThrow();
-        // 2500 * 400 = 1,000,000
         assertThat(eurHist.getAmount()).isEqualByComparingTo("1000000");
         HistoricalTransaction hufHist = plan.getBaselineTransactions().stream()
             .filter(ht -> ht.getOriginalCurrency() == Currency.HUF)
             .findFirst().orElseThrow();
-        assertThat(hufHist.getAmount()).isEqualByComparingTo("10000"); // unchanged
+        assertThat(hufHist.getAmount()).isEqualByComparingTo("10000");
     }
 }

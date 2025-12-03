@@ -1,5 +1,6 @@
-package com.akosgyongyosi.cashflow.controller;
+package com.akosgyongyosi.cashflow.controller.admin;
 
+import com.akosgyongyosi.cashflow.service.AuditLogService;
 import com.akosgyongyosi.cashflow.service.CsvImportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,27 +14,35 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.security.Principal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-class CsvUploadControllerTest {
+class CsvAdminControllerTest {
 
     @Mock
     private CsvImportService csvImportService;
 
     @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
     private MultipartFile multipartFile;
 
+    @Mock
+    private Principal principal;
+
     @InjectMocks
-    private CsvUploadController csvUploadController;
+    private CsvAdminController csvAdminController;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        ReflectionTestUtils.setField(csvUploadController, "importDir", "csv_imports");
+        ReflectionTestUtils.setField(csvAdminController, "importDir", "csv_imports");
+        when(principal.getName()).thenReturn("admin");
     }
 
     @Test
@@ -46,7 +55,7 @@ class CsvUploadControllerTest {
         when(multipartFile.getOriginalFilename()).thenReturn("test.csv");
         doNothing().when(csvImportService).parseSingleFile(any(InputStream.class), eq("test.csv"));
 
-        ResponseEntity<?> response = csvUploadController.uploadCsvFile(multipartFile);
+        ResponseEntity<?> response = csvAdminController.uploadCsvFile(multipartFile, principal);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo("File parsed successfully in memory.");
@@ -57,7 +66,7 @@ class CsvUploadControllerTest {
     void uploadCsvFile_shouldReturnBadRequestWhenFileIsEmpty() {
         when(multipartFile.isEmpty()).thenReturn(true);
 
-        ResponseEntity<?> response = csvUploadController.uploadCsvFile(multipartFile);
+        ResponseEntity<?> response = csvAdminController.uploadCsvFile(multipartFile, principal);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo("No file uploaded");
@@ -75,7 +84,7 @@ class CsvUploadControllerTest {
         doThrow(new RuntimeException("Parse error")).when(csvImportService)
             .parseSingleFile(any(InputStream.class), eq("invalid.csv"));
 
-        ResponseEntity<?> response = csvUploadController.uploadCsvFile(multipartFile);
+        ResponseEntity<?> response = csvAdminController.uploadCsvFile(multipartFile, principal);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().toString()).contains("Error parsing file");

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Box, Paper, Typography, TextField, Switch, FormControlLabel, Button, Autocomplete } from '@mui/material'
 import CurrencySelect from '../components/CurrencySelect'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 
 export default function AdminFxSettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -15,7 +15,7 @@ export default function AdminFxSettingsPage() {
     const token = localStorage.getItem('token')
     async function fetchSettings() {
       try {
-        const res = await fetch('/api/settings/fx', { headers: { Authorization: `Bearer ${token}` } })
+        const res = await fetch('/api/fx/settings', { headers: { Authorization: `Bearer ${token}` } })
         if (!res.ok) throw new Error('Failed to load FX settings: ' + res.status)
         const data = await res.json()
         setSettings(data)
@@ -40,7 +40,7 @@ export default function AdminFxSettingsPage() {
     try {
       const token = localStorage.getItem('token')
       const payload = { ...settings, quotes }
-      const res = await fetch('/api/settings/fx', {
+      const res = await fetch('/api/fx/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),

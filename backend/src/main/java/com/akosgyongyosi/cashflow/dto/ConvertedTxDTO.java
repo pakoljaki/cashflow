@@ -13,8 +13,8 @@ import java.time.LocalDate;
 @Data
 public class ConvertedTxDTO {
     LocalDate date;
-    BigDecimal amountBase;       // amount in plan's base
-    Currency baseCurrency;           // == plan.getBaseCurrency()
+    BigDecimal amountBase;       
+    Currency baseCurrency;          
     Long categoryId;
     Long accountId;
 }

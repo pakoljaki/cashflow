@@ -7,6 +7,7 @@ import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.PlanLineItemRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.service.AssumptionIdGeneratorService;
+import com.akosgyongyosi.cashflow.service.AuditLogService;
 import com.akosgyongyosi.cashflow.service.forecast.CashflowCalculationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -54,12 +56,19 @@ class PlanLineItemControllerTest {
     @Mock
     private com.akosgyongyosi.cashflow.service.CashflowPlanService cashflowPlanService;
 
+    @Mock
+    private AuditLogService auditLogService;
+
     @InjectMocks
     private PlanLineItemController planLineItemController;
+
+    private Principal principal;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("test@example.com");
     }
 
     @Test
@@ -68,7 +77,7 @@ class PlanLineItemControllerTest {
         CashflowPlan plan = new CashflowPlan();
         plan.setId(planId);
         plan.setBaseCurrency(Currency.USD);
-        plan.setLineItems(new java.util.ArrayList<>()); // Initialize empty list for saveAll
+        plan.setLineItems(new java.util.ArrayList<>()); 
 
         PlanLineItemRequestDTO dto = new PlanLineItemRequestDTO();
         dto.setTitle("One-time expense");
@@ -83,11 +92,11 @@ class PlanLineItemControllerTest {
         savedItem.setAssumptionId(100L);
 
         when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
-        when(assumptionIdGenService.getNextAssumptionId()).thenReturn(100L);
+        when(assumptionIdGenService.getNextAssumptionId()).thenReturn(200L);
         when(lineItemRepository.save(any(PlanLineItem.class))).thenReturn(savedItem);
         doNothing().when(cashflowCalculationService).applyAllAssumptions(plan);
 
-        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
+        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto, principal);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     verify(planRepository).findById(planId);
@@ -103,7 +112,7 @@ class PlanLineItemControllerTest {
         CashflowPlan plan = new CashflowPlan();
         plan.setId(planId);
         plan.setBaseCurrency(Currency.USD);
-
+        plan.setLineItems(new java.util.ArrayList<>()); 
         PlanLineItemRequestDTO dto = new PlanLineItemRequestDTO();
         dto.setTitle("Monthly salary");
         dto.setType(LineItemType.RECURRING);
@@ -116,13 +125,14 @@ class PlanLineItemControllerTest {
         savedItem.setId(2L);
         savedItem.setTitle("Monthly salary");
         savedItem.setType(LineItemType.RECURRING);
+        savedItem.setAssumptionId(101L); 
 
         when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
         when(assumptionIdGenService.getNextAssumptionId()).thenReturn(101L);
         when(lineItemRepository.save(any(PlanLineItem.class))).thenReturn(savedItem);
         doNothing().when(cashflowCalculationService).applyAllAssumptions(plan);
 
-        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
+        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto, principal);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     verify(lineItemRepository).save(any(PlanLineItem.class));
@@ -135,6 +145,7 @@ class PlanLineItemControllerTest {
         CashflowPlan plan = new CashflowPlan();
         plan.setId(planId);
         plan.setBaseCurrency(Currency.USD);
+        plan.setLineItems(new java.util.ArrayList<>());
 
         PlanLineItemRequestDTO dto = new PlanLineItemRequestDTO();
         dto.setTitle("Increase expenses by 10%");
@@ -152,6 +163,7 @@ class PlanLineItemControllerTest {
         savedItem.setId(3L);
         savedItem.setTitle("Increase expenses by 10%");
         savedItem.setType(LineItemType.CATEGORY_ADJUSTMENT);
+        savedItem.setAssumptionId(102L);
 
         when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
         when(categoryRepository.findById(5L)).thenReturn(Optional.of(category));
@@ -159,7 +171,7 @@ class PlanLineItemControllerTest {
         when(lineItemRepository.save(any(PlanLineItem.class))).thenReturn(savedItem);
         doNothing().when(cashflowCalculationService).applyAllAssumptions(plan);
 
-        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
+        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto, principal);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     verify(categoryRepository).findById(5L);
@@ -176,7 +188,7 @@ class PlanLineItemControllerTest {
 
         when(planRepository.findById(planId)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto);
+        ResponseEntity<?> response = planLineItemController.createLineItem(planId, dto, principal);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat((response.getBody() == null ? "" : response.getBody().toString())).contains("Error creating line item");
@@ -237,8 +249,8 @@ class PlanLineItemControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         verify(lineItemRepository).delete(item);
         verify(cashflowPlanService).regenerateBaseline(planId);
-        verify(planRepository, times(2)).findById(planId); // Called twice: once at line 173, once at line 183
-    verify(lineItemRepository).saveAll(anyList()); // Verify flags are persisted
+        verify(planRepository, times(2)).findById(planId);
+    verify(lineItemRepository).saveAll(anyList()); 
         verify(cashflowCalculationService).applyAllAssumptions(plan);
         verify(planRepository).save(plan);
     }

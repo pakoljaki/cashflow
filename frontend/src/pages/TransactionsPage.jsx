@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   Box,
   Paper,
@@ -13,10 +13,30 @@ import {
   TextField,
 } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import '../styles/transactions.css'
 import { formatAmount } from '../utils/numberFormatter'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 import DualAmount from '../components/DualAmount'
+import CurrencyBadge from '../components/CurrencyBadge'
+import { CURRENCIES } from '../constants/currencies'
+
+const STORAGE_KEY = 'transactionsDisplayCurrency'
+const DEFAULT_CHOICE = 'ORIGINAL'
+
+const readStoredChoice = () => {
+  if (typeof window === 'undefined') return DEFAULT_CHOICE
+  try {
+    const stored = window.localStorage?.getItem(STORAGE_KEY)
+    if (stored && (stored === DEFAULT_CHOICE || CURRENCIES.includes(stored))) {
+      return stored
+    }
+  } catch (err) {
+    console.warn('Unable to read transactions currency preference', err)
+  }
+  return DEFAULT_CHOICE
+}
 
 export default function TransactionsPage() {
   const { displayCurrency } = useCurrency()
@@ -27,18 +47,41 @@ export default function TransactionsPage() {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [message, setMessage] = useState('')
   const [filterCategory, setFilterCategory] = useState(null)
+  const [tableCurrency, setTableCurrency] = useState(readStoredChoice)
 
-  useEffect(() => {
+  const fetchTransactions = useCallback(async (targetCurrency) => {
     const token = localStorage.getItem('token')
-    fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(setTransactions)
+    if (!token) return
+
+    const choice = targetCurrency && targetCurrency !== DEFAULT_CHOICE ? targetCurrency : null
+    const query = choice ? `?displayCurrency=${choice}` : ''
+
+    const res = await fetch(`/api/transactions${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) {
+      setMessage('Unable to load transactions')
+      return
+    }
+
+    setTransactions(await res.json())
   }, [])
 
+  const refreshTransactions = useCallback(async () => {
+    await fetchTransactions(tableCurrency)
+  }, [fetchTransactions, tableCurrency])
+
+  useEffect(() => {
+    fetchTransactions(tableCurrency)
+  }, [fetchTransactions, tableCurrency])
+
   useEffect(() => {
     const token = localStorage.getItem('token')
+    if (!token) return
+
     fetch('/api/categories', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
+      .then(res => (res.ok ? res.json() : []))
       .then(setCategories)
   }, [])
 
@@ -48,12 +91,16 @@ export default function TransactionsPage() {
       const next = selectedTransactionIds.filter(id => id !== tx.id)
       setSelectedTransactionIds(next)
       if (!next.length) setSelectedDirection(null)
-    } else if (!selectedDirection || selectedDirection === tx.transactionDirection) {
-      setSelectedDirection(tx.transactionDirection)
-      setSelectedTransactionIds([...selectedTransactionIds, tx.id])
-    } else {
-      alert('Cannot mix POSITIVE and NEGATIVE')
+      return
     }
+
+    if (selectedDirection && selectedDirection !== tx.transactionDirection) {
+      alert('Cannot mix POSITIVE and NEGATIVE')
+      return
+    }
+
+    setSelectedDirection(tx.transactionDirection)
+    setSelectedTransactionIds([...selectedTransactionIds, tx.id])
   }
 
   const positiveCategories = categories.filter(c => c.direction === 'POSITIVE')
@@ -64,6 +111,7 @@ export default function TransactionsPage() {
       alert('No transactions selected.')
       return
     }
+
     const token = localStorage.getItem('token')
     const res = await fetch('/api/transactions/bulk-category', {
       method: 'PUT',
@@ -73,13 +121,15 @@ export default function TransactionsPage() {
       },
       body: JSON.stringify({ transactionIds: selectedTransactionIds, categoryId: catId }),
     })
+
     if (res.ok) {
       setMessage('Category updated!')
-      refreshTransactions()
+      await refreshTransactions()
       setSelectedTransactionIds([])
       setSelectedDirection(null)
       return
     }
+
     const txt = await res.text()
     setMessage('Error: ' + txt)
   }
@@ -93,6 +143,7 @@ export default function TransactionsPage() {
       alert('Enter a category name.')
       return
     }
+
     const token = localStorage.getItem('token')
     const res = await fetch('/api/categories', {
       method: 'POST',
@@ -102,6 +153,7 @@ export default function TransactionsPage() {
       },
       body: JSON.stringify({ name: newCategoryName.trim(), direction: selectedDirection }),
     })
+
     if (res.ok) {
       const created = await res.json()
       setCategories([...categories, created])
@@ -109,15 +161,18 @@ export default function TransactionsPage() {
       setMessage('New category created!')
       return
     }
+
     const txt = await res.text()
     setMessage('Error: ' + txt)
   }
 
-  const refreshTransactions = async () => {
-    const token = localStorage.getItem('token')
-    const res = await fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) {
-      setTransactions(await res.json())
+  const handleCurrencyChange = (_, value) => {
+    if (!value) return
+    setTableCurrency(value)
+    try {
+      window.localStorage?.setItem(STORAGE_KEY, value)
+    } catch (err) {
+      console.warn('Unable to persist transactions currency preference', err)
     }
   }
 
@@ -136,7 +191,26 @@ export default function TransactionsPage() {
           All Transactions
         </Typography>
 
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="textSecondary">
+              Display currency
+            </Typography>
+            <ToggleButtonGroup
+              color="primary"
+              exclusive
+              size="small"
+              value={tableCurrency}
+              onChange={handleCurrencyChange}
+            >
+              <ToggleButton value={DEFAULT_CHOICE}>Original</ToggleButton>
+              {CURRENCIES.map(code => (
+                <ToggleButton key={code} value={code} sx={{ px: 1.5 }}>
+                  <CurrencyBadge code={code} />
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
           <Autocomplete
             size="small"
             options={categoryOptions}
@@ -166,11 +240,13 @@ export default function TransactionsPage() {
                 const isSelected = selectedTransactionIds.includes(tx.id)
                 const isPos = tx.transactionDirection === 'POSITIVE'
                 const sign = isPos ? '+' : '–'
-                // Inline dual amount logic (avoid hook inside map until backend enriches data)
-                const same = tx.currency === displayCurrency || tx.convertedAmount == null
+                const requestedCurrency =
+                  tx.displayCurrency || (tableCurrency === DEFAULT_CHOICE ? null : tableCurrency)
+                const sameCurrency = !tx.convertedAmount || !requestedCurrency || tx.currency === requestedCurrency
                 const nativeFormatted = formatAmount(tx.amount, { currency: tx.currency })
                 let dual = { single: true, nativeFormatted }
-                if (!same) {
+
+                if (!sameCurrency) {
                   let tooltip = 'Converted amount'
                   if (tx.rateDate) {
                     tooltip = 'Rate date: ' + tx.rateDate
@@ -179,12 +255,15 @@ export default function TransactionsPage() {
                   dual = {
                     single: false,
                     nativeFormatted,
-                    convertedFormatted: formatAmount(tx.convertedAmount, { currency: displayCurrency }),
+                    convertedFormatted: formatAmount(tx.convertedAmount, {
+                      currency: requestedCurrency || displayCurrency,
+                    }),
                     tooltip,
-                    displayCurrency,
+                    displayCurrency: requestedCurrency || displayCurrency,
                     currency: tx.currency,
                   }
                 }
+
                 return (
                   <TableRow
                     key={tx.id}

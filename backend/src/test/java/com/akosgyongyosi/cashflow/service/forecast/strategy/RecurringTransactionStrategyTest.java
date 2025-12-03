@@ -36,7 +36,6 @@ class RecurringTransactionStrategyTest {
         plan = new CashflowPlan();
         plan.setStartDate(LocalDate.of(2025, 7, 1));
 
-        // Initialize FX context
         FxRequestCache cache = new FxRequestCache(fxService);
         FxConversionContext.open(Currency.HUF, cache);
     }

@@ -17,7 +17,7 @@ import '../styles/cashflowplans.css'
 import { formatAmount } from '../utils/numberFormatter'
 import CurrencyBadge from '../components/CurrencyBadge'
 import CurrencySelect from '../components/CurrencySelect'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 
 export default function CashflowPlansPage() {
   const navigate = useNavigate()
@@ -151,7 +151,7 @@ export default function CashflowPlansPage() {
     <Box className="cashflowplans-page">
       <Paper className="cashflowplans-table-container">
         <Typography variant="h6" align="center" gutterBottom>
-          Cashflow Plans (Grouped by Scenario)
+          Cashflow Plans
         </Typography>
         {message && (
           <Typography color="error" align="center" sx={{ mb: 1 }}>
@@ -181,22 +181,23 @@ export default function CashflowPlansPage() {
                     <CurrencyBadge code={plan.baseCurrency} title={`Base currency for this scenario plan`} />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}
-                    >
-                      Manage
-                    </Button>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      color="error"
-                      sx={{ ml: 1 }}
-                      onClick={() => handleDeleteGroup(plan.groupKey)}
-                    >
-                      Delete
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => navigate(`/scenario-group/${plan.groupKey}`)}
+                      >
+                        Manage
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteGroup(plan.groupKey)}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -207,7 +208,7 @@ export default function CashflowPlansPage() {
 
       <Paper className="cashflowplans-form-container">
         <Typography variant="h6" gutterBottom>
-          Create 3-Scenario Plan Group
+          Create 3-Scenario Plan
         </Typography>
         <TextField
           label="Base Plan Name"

@@ -28,8 +28,6 @@ public class PlanLineItemResponseDTO {
     private String categoryName;
     private Currency currency;
     private String warning;
-    // New structured warnings (preferred over legacy single string 'warning').
     private List<FxWarningDTO> warnings;
-    // Metadata about the FX rate used for conversion (nullable if not applicable).
     private RateMetaDTO rateMeta;
 }

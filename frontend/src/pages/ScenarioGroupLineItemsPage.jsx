@@ -22,7 +22,7 @@ import CashflowChart from '../components/charts/CashflowChart'
 import MonthlyDataTable from '../components/MonthlyDataTable'
 import { formatAmount } from '../utils/numberFormatter'
 import CurrencyBadge from '../components/CurrencyBadge'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 
 export default function ScenarioGroupLineItemsPage() {
   const { groupKey } = useParams()
@@ -65,8 +65,8 @@ export default function ScenarioGroupLineItemsPage() {
       return
     }
     const fetchKpi = (planId) => {
-      const param = displayCurrency && displayCurrency !== 'HUF' ? `?displayCurrency=${encodeURIComponent(displayCurrency)}` : ''
-      return fetch(`/api/cashflow-plans/${planId}/monthly-kpi${param}`, {
+      // Fetch without displayCurrency parameter to get values in plan's base currency
+      return fetch(`/api/cashflow-plans/${planId}/monthly-kpi`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then((r) => (r.ok ? r.json() : []))
     }
@@ -134,17 +134,12 @@ export default function ScenarioGroupLineItemsPage() {
   }, [plans])
 
   const groupedAssumptions = useMemo(() => {
-    // We originally grouped strictly by assumptionId. When users add the same logical
-    // assumption (same title/date/type/category) to different scenarios at different times,
-    // the backend generates distinct assumptionIds, causing separate rows. To make the UI
-    // friendlier we collapse items across scenarios using a signature of stable fields.
-    // If multiple assumptionIds map to one signature we join them (e.g. "3,6").
+    
     const map = new Map()
     for (const it of allItems) {
       const signature = [
         (it.title || '').trim().toLowerCase(),
         it.type || '',
-        // one-time items use transactionDate; recurring/category may have startDate/endDate
         it.transactionDate || it.startDate || '',
         it.categoryId || ''
       ].join('|')
@@ -281,7 +276,10 @@ export default function ScenarioGroupLineItemsPage() {
 
       <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6" gutterBottom>Cashflow Forecast</Typography>
-        <CashflowChart monthlyData={monthlyData} />
+        <CashflowChart 
+          monthlyData={monthlyData} 
+          baseCurrency={plans.find((p) => p.scenario === 'REALISTIC')?.baseCurrency || 'HUF'}
+        />
       </Paper>
 
       <Paper elevation={3} sx={{ p: 2 }}>
@@ -289,6 +287,7 @@ export default function ScenarioGroupLineItemsPage() {
         <MonthlyDataTable
           startBalance={plans.find((p) => p.scenario === 'REALISTIC')?.startBalance || 0}
           monthlyData={realKpiData}
+          baseCurrency={plans.find((p) => p.scenario === 'REALISTIC')?.baseCurrency || 'HUF'}
         />
       </Paper>
     </Box>

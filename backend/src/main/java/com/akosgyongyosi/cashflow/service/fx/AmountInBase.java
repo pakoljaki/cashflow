@@ -9,7 +9,6 @@ import java.util.function.Function;
 public final class AmountInBase {
     private AmountInBase() {}
 
-    /** Generic converter, for assumptions or historical items. */
     public static BigDecimal of(LocalDate date,
                                 Currency from,
                                 BigDecimal amount,
@@ -19,7 +18,6 @@ public final class AmountInBase {
         return cache.convert(amount, from, base, date);
     }
 
-    /** Entity-style convenience: pass accessors so we don't tie to concrete classes. */
     public static <T> BigDecimal of(T source,
                                     Function<T, LocalDate> dateGetter,
                                     Function<T, Currency> currencyGetter,

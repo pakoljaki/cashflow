@@ -1,4 +1,3 @@
-// src/main/java/com/akosgyongyosi/cashflow/controller/TransactionCategoryController.java
 package com.akosgyongyosi.cashflow.controller;
 
 import com.akosgyongyosi.cashflow.dto.CategoryRequestDTO;

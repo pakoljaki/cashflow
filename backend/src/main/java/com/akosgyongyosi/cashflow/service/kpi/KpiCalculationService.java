@@ -38,7 +38,6 @@ public class KpiCalculationService {
         this.fxService = fxService;
     }
 
-    // Backwards-compatible overload if old callers exist; defaults to HUF
     public KpiDashboardDTO calculateForPeriod(LocalDate start, LocalDate end, BigDecimal startBalance) {
         return calculateForPeriod(start, end, startBalance, Currency.HUF);
     }
@@ -108,18 +107,15 @@ public class KpiCalculationService {
             for (KpiEntry e : list) {
                 if (e.isPositive()) {
                     income = income.add(e.getAmount());
-                    // Store income categories separately (always positive)
                     if (e.getAcctCode() != null && !e.getAcctCode().trim().isEmpty()) {
                         dto.getIncomeAccountingCategorySums().merge(e.getAcctCode(), e.getAmount(), BigDecimal::add);
                     }
                 } else {
-                    expense = expense.add(e.getAmount().abs());  // Store as positive
-                    // Store expense categories separately (always positive)
+                    expense = expense.add(e.getAmount().abs()); 
                     if (e.getAcctCode() != null && !e.getAcctCode().trim().isEmpty()) {
                         dto.getExpenseAccountingCategorySums().merge(e.getAcctCode(), e.getAmount().abs(), BigDecimal::add);
                     }
                 }
-                // Legacy backward compat: also populate combined map with original signs
                 if (e.getAcctCode() != null && !e.getAcctCode().trim().isEmpty()) {
                     dto.getAccountingCategorySums().merge(e.getAcctCode(), e.getAmount(), BigDecimal::add);
                 }

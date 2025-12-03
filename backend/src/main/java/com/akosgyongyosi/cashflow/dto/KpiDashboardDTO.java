@@ -17,11 +17,10 @@ public class KpiDashboardDTO {
     private BigDecimal ebitda = BigDecimal.ZERO;
     private BigDecimal ebit = BigDecimal.ZERO;
     private BigDecimal profitMargin = BigDecimal.ZERO;
-    // FX metadata for dashboard-level conversions
-    private String baseCurrency; // canonical/base currency
-    private String balanceCurrency; // currency of the starting balance (display currency for KPI page)
-    private String displayCurrency; // target display currency if conversion performed
-    private String startBalanceRateDate; // rate date used for start balance conversion
-    private String startBalanceRateSource; // provider for start balance conversion
-    private BigDecimal originalStartBalance; // original base start balance for dual display
+    private String baseCurrency; 
+    private String balanceCurrency; 
+    private String displayCurrency;
+    private String startBalanceRateDate; 
+    private String startBalanceRateSource;
+    private BigDecimal originalStartBalance; 
 }

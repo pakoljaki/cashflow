@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MyButton from '../components/MyButton';
 import '../styles/login.css';
 
 
@@ -31,7 +32,7 @@ const Login = () => {
             console.error("Role is missing in response!");
         }
 
-        navigate("/dashboard");
+        navigate("/transactions");
     } else {
         alert("Login failed");
     }
@@ -45,7 +46,7 @@ const Login = () => {
       <form className="login-form" onSubmit={handleSubmit}>
         <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
         <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
-        <button type="submit">Login</button>
+        <MyButton type="submit">Login</MyButton>
       </form>
       <p>
         Don't have an account?{" "}

@@ -11,8 +11,7 @@ import com.akosgyongyosi.cashflow.entity.LineItemType;
 @Repository
 public interface PlanLineItemRepository extends JpaRepository<PlanLineItem, Long> {
     List<PlanLineItem> findByPlanId(Long planId);
-
-    // Reuse signatures
+    PlanLineItem findByPlanIdAndAssumptionId(Long planId, Long assumptionId);
     PlanLineItem findFirstByTitleIgnoreCaseAndTypeAndTransactionDate(String title, LineItemType type, LocalDate transactionDate);
     PlanLineItem findFirstByTitleIgnoreCaseAndTypeAndStartDateAndFrequency(String title, LineItemType type, LocalDate startDate, com.akosgyongyosi.cashflow.entity.Frequency frequency);
     PlanLineItem findFirstByTitleIgnoreCaseAndTypeAndStartDateAndPercentChange(String title, LineItemType type, LocalDate startDate, Double percentChange);

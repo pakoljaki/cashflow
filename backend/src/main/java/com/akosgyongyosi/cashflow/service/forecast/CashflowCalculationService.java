@@ -31,7 +31,6 @@ public class CashflowCalculationService {
         FxRequestCache cache = new FxRequestCache(fxService);
         FxConversionContext.open(base, cache);
         try {
-            // Category adjustments first
             for (PlanLineItem item : plan.getLineItems()) {
                 if (item.getType() == LineItemType.CATEGORY_ADJUSTMENT) {
                     applyItemWithResilience(plan, item);
@@ -56,7 +55,6 @@ public class CashflowCalculationService {
                 } catch (Exception ex) {
                     log.error("[ASSUMPTION-APPLY-ERROR] planId={} itemId={} type={} assumptionId={} message={}",
                             plan.getId(), item.getId(), item.getType(), item.getAssumptionId(), ex.getMessage(), ex);
-                    // Do not rethrow: continue applying remaining items
                 }
             }
         }

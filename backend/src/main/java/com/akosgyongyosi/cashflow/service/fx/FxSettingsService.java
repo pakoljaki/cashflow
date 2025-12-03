@@ -49,7 +49,6 @@ public class FxSettingsService {
     @Transactional
     public FxSettingsDTO update(FxSettingsDTO in) {
         FxSettings s = repo.findTopByOrderByIdAsc().orElseGet(FxSettings::new);
-        // Validation: base currency must not appear in quotes list
         if (in.getQuotes() != null && in.getQuotes().contains(in.getBaseCurrency())) {
             throw new IllegalArgumentException("Base currency cannot be included in quotes list");
         }
@@ -67,10 +66,7 @@ public class FxSettingsService {
         props.setQuotes(set);
         props.setEnabled(in.isEnabled());
         props.setRefreshCron(in.getRefreshCron());
-        // Clear cached lookups after base currency change (if changed)
-        // NOTE: Cache invalidation for RateLookupService should be triggered via an application event here.
-        // Simplified: omitted to avoid direct self-call of transactional methods.
-
+        
         return buildDtoFromEntity(s);
     }
 

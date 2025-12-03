@@ -36,7 +36,7 @@ public class FrankfurterFxProvider implements FxProvider {
         if (quotes == null || quotes.isEmpty()) return out;
         String toParam = String.join(",", quotes.stream().filter(q -> q != base).map(Enum::name).toList());
         String url = props.getApiBaseUrl() + "/" + date + "?from=" + base.name() + "&to=" + toParam;
-        Map<String, Object> body = fetchJson(url, 3, 5_000, 5_000, date.toString());
+        Map<String, Object> body = fetchJson(url, 1, 5_000, 5_000, date.toString());
         if (body == null) return out;
         Object ratesObj = body.get("rates");
         if (ratesObj instanceof Map<?, ?> rates) {
@@ -47,7 +47,7 @@ public class FrankfurterFxProvider implements FxProvider {
                     Currency c = Currency.valueOf(k);
                     BigDecimal val = (v instanceof Number) ? new BigDecimal(v.toString()) : null;
                     if (val != null) out.put(c, val);
-                } catch (IllegalArgumentException ignore) { /* skip unknown code */ }
+                } catch (IllegalArgumentException ignore) {}
             }
         }
         return out;
@@ -111,7 +111,7 @@ public class FrankfurterFxProvider implements FxProvider {
                 Object v = e.getValue();
                 BigDecimal bd = (v instanceof Number) ? new BigDecimal(v.toString()) : null;
                 if (bd != null) dayRates.put(c, bd);
-            } catch (IllegalArgumentException ignore) { /* skip unknown currency code */ }
+            } catch (IllegalArgumentException ignore) { }
         }
         return dayRates;
     }

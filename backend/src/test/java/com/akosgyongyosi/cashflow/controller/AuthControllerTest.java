@@ -9,6 +9,7 @@ import com.akosgyongyosi.cashflow.entity.Role;
 import com.akosgyongyosi.cashflow.entity.User;
 import com.akosgyongyosi.cashflow.repository.UserRepository;
 import com.akosgyongyosi.cashflow.security.JwtUtil;
+import com.akosgyongyosi.cashflow.service.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,7 @@ class AuthControllerTest {
     private AuthenticationManager authenticationManager;
     private SecurityConfig securityConfig;
     private PasswordEncoder passwordEncoder;
+    private AuditLogService auditLogService;
     private AuthController controller;
 
     @BeforeEach
@@ -47,8 +49,9 @@ class AuthControllerTest {
         authenticationManager = mock(AuthenticationManager.class);
         securityConfig = mock(SecurityConfig.class);
         passwordEncoder = mock(PasswordEncoder.class);
+        auditLogService = mock(AuditLogService.class);
         when(securityConfig.passwordEncoder()).thenReturn(passwordEncoder);
-        controller = new AuthController(userRepository, jwtUtil, authenticationManager, securityConfig);
+        controller = new AuthController(userRepository, jwtUtil, authenticationManager, securityConfig, auditLogService);
     }
 
     @Test
@@ -72,7 +75,7 @@ class AuthControllerTest {
         verify(userRepository).save(argThat(u ->
                 u.getEmail().equals("new@example.com") &&
                 u.getPassword().equals("hashedPassword") &&
-                u.getRoles().contains(Role.USER)
+                u.getRole() == Role.USER
         ));
     }
 
@@ -97,7 +100,7 @@ class AuthControllerTest {
         RegisterRequestDTO request = new RegisterRequestDTO();
         request.setEmail("admin@example.com");
         request.setPassword("password123");
-        request.setRoles(List.of("ADMIN", "USER"));
+        request.setRoles(List.of("ADMIN"));
 
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("hashedPassword");
@@ -108,7 +111,7 @@ class AuthControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(userRepository).save(argThat(u ->
-                u.getRoles().contains(Role.ADMIN) && u.getRoles().contains(Role.USER)
+                u.getRole() == Role.ADMIN
         ));
     }
 

@@ -3,3 +3,14 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+
+// Provide a minimal ResizeObserver mock for chart components rendered in jsdom
+class ResizeObserverMock {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+
+if (typeof globalThis.ResizeObserver === 'undefined') {
+	globalThis.ResizeObserver = ResizeObserverMock
+}

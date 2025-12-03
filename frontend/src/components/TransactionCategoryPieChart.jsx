@@ -29,12 +29,10 @@ export default function TransactionCategoryPieChart({ data, chartType, title }) 
 
   const desiredDir = chartType === 'INCOME' ? 'POSITIVE' : 'NEGATIVE'
 
-  // initialize every transaction category of this direction to zero
   const agg = cats
     .filter(tc => tc.direction === desiredDir)
     .reduce((acc, tc) => ({ ...acc, [tc.name]: 0 }), {})
 
-  // sum over every month’s transactionCategorySums
   data.forEach(month => {
     const sums = month.transactionCategorySums || {}
     Object.entries(sums).forEach(([name, amt]) => {

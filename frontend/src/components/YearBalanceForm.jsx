@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import CurrencySelect from './CurrencySelect'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 import MyButton from './MyButton'
 import { formatAmount } from '../utils/numberFormatter'
 import '../styles/YearBalanceForm.css'

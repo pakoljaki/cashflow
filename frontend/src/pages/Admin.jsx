@@ -14,8 +14,9 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 import UserManagement from '../components/UserManagement'
+import FxSettingsPanel from '../components/FxSettingsPanel'
 
 export default function AdminPage() {
   const { roles } = useCurrency()
@@ -239,6 +240,11 @@ export default function AdminPage() {
               <UserManagement />
             </Paper>
           </Box>
+        </Box>
+
+        {/* FX Settings Panel - Full Width */}
+        <Box sx={{ mt: 3 }}>
+          <FxSettingsPanel />
         </Box>
       </Box>
 

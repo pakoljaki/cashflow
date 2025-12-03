@@ -36,10 +36,8 @@ class AssumptionIdGeneratorServiceTest {
         AssumptionIdSequence firstSave = captor.getAllValues().get(0);
         assertThat(firstSave.getSeqName()).isEqualTo("ASSUMPTION_ID");
         
-        // Second save: nextVal incremented to 2 (returned 1, next will be 2)
         AssumptionIdSequence secondSave = captor.getAllValues().get(1);
         assertThat(secondSave.getSeqName()).isEqualTo("ASSUMPTION_ID");
-        // The service mutates the object, so both references point to the same object with nextVal=2
     }
 
     @Test

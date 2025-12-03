@@ -2,19 +2,31 @@ package com.akosgyongyosi.cashflow.controller;
 
 import com.akosgyongyosi.cashflow.dto.BulkCategoryRequestDTO;
 import com.akosgyongyosi.cashflow.dto.CategoryUpdateRequestDTO;
+import com.akosgyongyosi.cashflow.dto.TransactionViewDTO;
 import com.akosgyongyosi.cashflow.entity.Transaction;
 import com.akosgyongyosi.cashflow.entity.TransactionCategory;
 import com.akosgyongyosi.cashflow.entity.TransactionDirection;
+import com.akosgyongyosi.cashflow.entity.Currency;
+import com.akosgyongyosi.cashflow.dto.RateMetaDTO;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionRepository;
+import com.akosgyongyosi.cashflow.service.fx.FxService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.function.Function;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -24,18 +36,29 @@ public class TransactionController {
 
     private final TransactionRepository transactionRepository;
     private final TransactionCategoryRepository categoryRepository;
+    private final FxService fxService;
 
     public TransactionController(TransactionRepository transactionRepository,
-                                 TransactionCategoryRepository categoryRepository) {
+                                 TransactionCategoryRepository categoryRepository,
+                                 FxService fxService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
+        this.fxService = fxService;
     }
     
     @GetMapping
-    public List<Transaction> getAllTransactions() {
+    public List<TransactionViewDTO> getAllTransactions(
+            @RequestParam(name = "displayCurrency", required = false) String requestedCurrency) {
         List<Transaction> allTx = transactionRepository.findAll();
-        log.debug("getAllTransactions() returning {} rows", allTx.size());
-        return allTx;
+        log.debug("getAllTransactions() returning {} rows (requestedCurrency={})", allTx.size(), requestedCurrency);
+
+        Currency targetCurrency = resolveDisplayCurrency(requestedCurrency);
+        if (targetCurrency == null) {
+            return allTx.stream().map(TransactionViewDTO::from).toList();
+        }
+
+        Function<Transaction, TransactionViewDTO> mapper = buildConversionMapper(targetCurrency);
+        return allTx.stream().map(mapper).toList();
     }
     
     @GetMapping("/categories")
@@ -133,5 +156,48 @@ public class TransactionController {
 
         TransactionCategory savedCategory = categoryRepository.save(newCategory);
         return ResponseEntity.ok(savedCategory);
+    }
+
+    private Currency resolveDisplayCurrency(String requested) {
+        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase("original")) {
+            return null;
+        }
+        try {
+            return Currency.valueOf(requested.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unsupported displayCurrency: " + requested);
+        }
+    }
+
+    private Function<Transaction, TransactionViewDTO> buildConversionMapper(Currency targetCurrency) {
+        Map<String, RateMetaDTO> metaCache = new HashMap<>();
+        return tx -> {
+            if (tx.getCurrency() == targetCurrency) {
+                return TransactionViewDTO.from(tx);
+            }
+
+            LocalDate effectiveDate = tx.getValueDate() != null ? tx.getValueDate() : tx.getBookingDate();
+            if (effectiveDate == null) {
+                effectiveDate = LocalDate.now();
+            }
+            try {
+                var result = fxService.convertWithDetails(tx.getAmount(), tx.getCurrency(), targetCurrency, effectiveDate);
+                BigDecimal converted = result.convertedAmount().setScale(2, RoundingMode.HALF_UP);
+                RateMetaDTO meta = result.baseToQuoteMeta();
+                // Cache the metadata to avoid repeated object creation for identical pairs.
+                if (meta != null) {
+                    String key = meta.getQuoteCurrency() + "@" + meta.getRateDateUsed();
+                    metaCache.putIfAbsent(key, meta);
+                    meta = metaCache.get(key);
+                }
+                return TransactionViewDTO.withConversion(tx, converted, targetCurrency,
+                        meta != null ? meta.getRateDateUsed() : null,
+                        meta != null ? meta.getProvider() : null);
+            } catch (Exception ex) {
+                log.warn("FX conversion failed for transaction {} {} -> {}: {}", tx.getId(), tx.getCurrency(), targetCurrency, ex.getMessage());
+                return TransactionViewDTO.from(tx);
+            }
+        };
     }
 }

@@ -23,7 +23,6 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
     private static final Logger log = LoggerFactory.getLogger(RecurringTransactionStrategy.class);
 
     public RecurringTransactionStrategy(FxService fxService) {
-        // fxService retained in case future enhancements need conversions beyond static context
     }
 
     @Override
@@ -35,10 +34,9 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
     public void applyForecast(CashflowPlan plan, PlanLineItem item) {
         log.debug("RecurringStrategy BEGIN itemId={} title='{}' currency={} isApplied={}", item.getId(), item.getTitle(), item.getCurrency(), item.getIsApplied());
 
-        // Guard: required fields
         if (item.getStartDate() == null || item.getEndDate() == null || item.getFrequency() == null) {
             log.warn("RecurringStrategy MISSING_FIELDS itemId={} startDate={} endDate={} frequency={} -> SKIP", item.getId(), item.getStartDate(), item.getEndDate(), item.getFrequency());
-            return; // do NOT mark applied so a later fix can re-run
+            return; 
         }
 
         if (Boolean.TRUE.equals(item.getIsApplied())) {
@@ -51,7 +49,7 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
             transactionDates = calculateRecurringDates(item);
         } catch (Exception ex) {
             log.error("RecurringStrategy DATE_CALC_ERROR itemId={} message={}", item.getId(), ex.getMessage());
-            return; // keep isApplied=false so retriable
+            return; 
         }
 
         if (transactionDates.isEmpty()) {
@@ -64,7 +62,7 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
 
         int success = 0;
         for (LocalDate date : transactionDates) {
-            if (date == null) { // Defensive: should never happen now
+            if (date == null) { 
                 log.warn("RecurringStrategy NULL_DATE itemId={} frequency={} listSize={}", item.getId(), item.getFrequency(), transactionDates.size());
                 continue;
             }
@@ -86,7 +84,7 @@ public class RecurringTransactionStrategy implements ForecastStrategy {
         }
 
         if (success > 0) {
-            item.setIsApplied(true); // mark applied only if at least one transaction is created
+            item.setIsApplied(true); 
             log.debug("RecurringStrategy COMPLETE itemId={} successTx={} totalPlanned={}", item.getId(), success, transactionDates.size());
         } else {
             log.warn("RecurringStrategy NO_SUCCESS itemId={} plannedDates={}", item.getId(), transactionDates.size());

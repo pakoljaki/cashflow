@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,18 +15,17 @@ class JwtUtilRoleConsistencyTest {
 
     @Test
     void generatedTokenContainsPrefixedRoles() {
-        String token = jwtUtil.generateToken("test@example.com", Set.of(Role.ADMIN, Role.USER));
+        String token = jwtUtil.generateToken("test@example.com", Role.ADMIN);
         var claims = jwtUtil.parseToken(token);
         @SuppressWarnings("unchecked")
         var roles = (java.util.List<String>) claims.get("roles");
         assertTrue(roles.contains("ROLE_ADMIN"), "ROLE_ADMIN should be present in token claims");
-        assertTrue(roles.contains("ROLE_USER"), "ROLE_USER should be present in token claims");
         assertFalse(roles.contains("ADMIN"), "Unprefixed ADMIN should not be present");
     }
 
     @Test
     void tokenAuthoritiesRestoredMatchSpringExpectations() {
-        String token = jwtUtil.generateToken("user@example.com", Set.of(Role.USER));
+        String token = jwtUtil.generateToken("user@example.com", Role.USER);
         var claims = jwtUtil.parseToken(token);
         @SuppressWarnings("unchecked")
         var roles = (java.util.List<String>) claims.get("roles");

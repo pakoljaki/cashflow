@@ -15,7 +15,6 @@ import java.security.Key;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Component
 public class JwtUtil {
@@ -33,12 +32,8 @@ public class JwtUtil {
         return buildToken(userDetails.getUsername(), roleNames);
     }
 
-    public String generateToken(String email, Set<Role> roles) {
-        // Ensure consistency with Spring Security's ROLE_ prefix expectations
-        // so that both hasRole("ADMIN") and hasAuthority("ROLE_ADMIN") checks succeed.
-        List<String> roleNames = roles.stream()
-            .map(r -> "ROLE_" + r.name())
-            .toList();
+    public String generateToken(String email, Role role) {
+        List<String> roleNames = List.of("ROLE_" + role.name());
         return buildToken(email, roleNames);
     }
 

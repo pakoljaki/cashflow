@@ -12,6 +12,7 @@ import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
 import com.akosgyongyosi.cashflow.repository.PlanLineItemRepository;
 import com.akosgyongyosi.cashflow.repository.TransactionCategoryRepository;
 import com.akosgyongyosi.cashflow.service.AssumptionIdGeneratorService;
+import com.akosgyongyosi.cashflow.service.AuditLogService;
 import com.akosgyongyosi.cashflow.service.forecast.CashflowCalculationService;
 import com.akosgyongyosi.cashflow.service.fx.PlanCurrencyResolver;
 import com.akosgyongyosi.cashflow.service.fx.RateLookupService;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.List;
@@ -29,7 +31,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/cashflow-plans")
 @Slf4j
-@SuppressWarnings({"java:S107","null"}) // S107: constructor parameter count, null: static analysis over null-safety
+@SuppressWarnings({"java:S107","null"}) 
 public class PlanLineItemController {
 
     private final CashflowPlanRepository planRepository;
@@ -40,6 +42,7 @@ public class PlanLineItemController {
     private final RateLookupService rateLookupService;
     private final com.akosgyongyosi.cashflow.service.fx.TransactionDateRangeFxService transactionDateRangeFxService;
     private final com.akosgyongyosi.cashflow.service.CashflowPlanService cashflowPlanService;
+    private final AuditLogService auditLogService;
 
     public PlanLineItemController(
             CashflowPlanRepository planRepository,
@@ -49,7 +52,8 @@ public class PlanLineItemController {
             CashflowCalculationService cashflowCalculationService,
             RateLookupService rateLookupService,
             com.akosgyongyosi.cashflow.service.fx.TransactionDateRangeFxService transactionDateRangeFxService,
-            com.akosgyongyosi.cashflow.service.CashflowPlanService cashflowPlanService
+            com.akosgyongyosi.cashflow.service.CashflowPlanService cashflowPlanService,
+            AuditLogService auditLogService
     ) {
         this.planRepository = planRepository;
         this.lineItemRepository = lineItemRepository;
@@ -59,13 +63,15 @@ public class PlanLineItemController {
         this.rateLookupService = rateLookupService;
         this.transactionDateRangeFxService = transactionDateRangeFxService;
         this.cashflowPlanService = cashflowPlanService;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping("/{planId}/line-items")
     @Transactional
     public ResponseEntity<Object> createLineItem(
         @org.springframework.lang.NonNull @PathVariable Long planId,
-        @org.springframework.lang.NonNull @RequestBody PlanLineItemRequestDTO dto
+        @org.springframework.lang.NonNull @RequestBody PlanLineItemRequestDTO dto,
+        Principal principal
     ) {
         try {
             CashflowPlan plan = planRepository.findById(planId)
@@ -77,7 +83,6 @@ public class PlanLineItemController {
             lineItem.setTitle(dto.getTitle());
             lineItem.setType(dto.getType());
 
-            // currency: if not provided, default to plan's functional currency
             Currency itemCurrency = dto.getCurrency() != null ? dto.getCurrency() : PlanCurrencyResolver.resolve(plan);
             lineItem.setCurrency(itemCurrency);
 
@@ -126,39 +131,56 @@ public class PlanLineItemController {
             } else {
                 lineItem.setAssumptionId(dto.getAssumptionId());
             }
+            
+            PlanLineItem existingInDb = lineItemRepository.findByPlanIdAndAssumptionId(planId, lineItem.getAssumptionId());
+            if (existingInDb != null) {
+                log.warn("[CREATE-DUPLICATE-DB] planId={} assumptionId={} already exists in database (id={}), skipping", 
+                    planId, lineItem.getAssumptionId(), existingInDb.getId());
+                return ResponseEntity.ok(toResponseDTO(existingInDb, plan));
+            }
+            
+            boolean alreadyExists = plan.getLineItems() != null && 
+                plan.getLineItems().stream()
+                    .anyMatch(li -> lineItem.getAssumptionId().equals(li.getAssumptionId()));
+            if (alreadyExists) {
+                log.warn("[CREATE-DUPLICATE-MEM] planId={} assumptionId={} already exists in memory, skipping", planId, lineItem.getAssumptionId());
+                PlanLineItem existing = plan.getLineItems().stream()
+                    .filter(li -> lineItem.getAssumptionId().equals(li.getAssumptionId()))
+                    .findFirst()
+                    .orElse(lineItem);
+                return ResponseEntity.ok(toResponseDTO(existing, plan));
+            }
 
-            PlanLineItem saved = lineItemRepository.save(lineItem); // initial persist to obtain ID
-
-            // Desired semantics: only NEW assumptions (isApplied == false) should be processed.
-            // Existing assumptions retain isApplied=true and are skipped by their strategies.
-            // Ensure the new item is present in the in-memory collection before applying.
+            PlanLineItem saved = lineItemRepository.save(lineItem); 
+    
             if (plan.getLineItems() == null) {
-                plan.setLineItems(new java.util.ArrayList<>()); // avoid NPE
+                plan.setLineItems(new java.util.ArrayList<>()); 
             }
             if (plan.getLineItems().stream().noneMatch(li -> li.getId() != null && li.getId().equals(saved.getId()))) {
-                // Add if not already included (depends on JPA persistence context configuration)
                 plan.getLineItems().add(saved);
             }
 
-            // Metrics before applying
             long appliedBefore = plan.getLineItems().stream().filter(li -> Boolean.TRUE.equals(li.getIsApplied())).count();
             long totalBefore = plan.getLineItems().size();
             log.debug("[APPLY-BEFORE] planId={} appliedBefore={}/{}", planId, appliedBefore, totalBefore);
 
-            // Pre-fetch FX rates for relevant dates
             ensureFxRatesForPlan(plan);
 
-            // Apply all assumptions – strategies skip those already applied (isApplied == true)
             cashflowCalculationService.applyAllAssumptions(plan);
 
             long appliedAfter = plan.getLineItems().stream().filter(li -> Boolean.TRUE.equals(li.getIsApplied())).count();
             long totalAfter = plan.getLineItems().size();
             log.debug("[APPLY-AFTER] planId={} newItemId={} assumptionId={} appliedAfter={}/{}", planId, saved.getId(), saved.getAssumptionId(), appliedAfter, totalAfter);
 
-            // Persist ALL line items whose flags may have changed (single bulk save avoids double save of new item)
             lineItemRepository.saveAll(plan.getLineItems());
             planRepository.save(plan);
             log.debug("[CREATE-DONE] planId={} itemId={} isApplied={} baselineTxCount={}", planId, saved.getId(), saved.getIsApplied(), plan.getBaselineTransactions() == null ? -1 : plan.getBaselineTransactions().size());
+
+            auditLogService.logAction(principal != null ? principal.getName() : "system", "CREATE_ASSUMPTION", 
+                java.util.Map.of("planId", planId, "itemId", saved.getId(), 
+                                 "assumptionId", saved.getAssumptionId(), 
+                                 "type", dto.getType().name(), 
+                                 "title", dto.getTitle()));
 
             return ResponseEntity.ok(toResponseDTO(saved, plan));
 
@@ -200,7 +222,6 @@ public class PlanLineItemController {
 
     @DeleteMapping("/{planId}/line-items/{itemId}")
     public ResponseEntity<Void> deleteLineItem(@org.springframework.lang.NonNull @PathVariable Long planId, @org.springframework.lang.NonNull @PathVariable Long itemId) {
-        // Check if item exists - return 404 if already deleted
         Optional<PlanLineItem> itemOpt = lineItemRepository.findById(itemId);
         if (itemOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -213,22 +234,13 @@ public class PlanLineItemController {
 
         CashflowPlan plan = item.getPlan();
         
-        // CRITICAL FIX: When deleting assumptions, especially CATEGORY_ADJUSTMENT,
-        // we MUST rebuild baseline from scratch because category adjustments 
-        // mutate existing transaction amounts. Simply reapplying assumptions
-        // won't restore the original values!
-        
-        // 1. Delete the line item first
         lineItemRepository.delete(item);
         
-        // 2. Clear all baseline transactions and rebuild from source
         cashflowPlanService.regenerateBaseline(plan.getId());
         
-        // 3. Refresh plan to get the regenerated baseline
         plan = planRepository.findById(plan.getId())
                 .orElseThrow(() -> new RuntimeException("Plan not found"));
         
-        // 4. Reset all remaining assumptions to not-applied and persist immediately
         if (plan.getLineItems() != null) {
             for (PlanLineItem remainingItem : plan.getLineItems()) {
                 remainingItem.setIsApplied(false);
@@ -236,11 +248,9 @@ public class PlanLineItemController {
             lineItemRepository.saveAll(plan.getLineItems());
         }
         
-        // 5. Refresh plan again to get updated line items
         plan = planRepository.findById(plan.getId())
                 .orElseThrow(() -> new RuntimeException("Plan not found"));
         
-        // 6. Re-apply all remaining assumptions from scratch on clean baseline
         ensureFxRatesForPlan(plan);
         cashflowCalculationService.applyAllAssumptions(plan);
         planRepository.save(plan);
@@ -263,7 +273,6 @@ public class PlanLineItemController {
         dto.setCategoryName(item.getCategory() != null ? item.getCategory().getName() : null);
         dto.setCurrency(item.getCurrency());
         
-        // Populate structured FX warnings + metadata if currency differs from plan base
         Currency planBaseCurrency = PlanCurrencyResolver.resolve(plan);
         if (item.getCurrency() != null && item.getCurrency() != planBaseCurrency) {
             LocalDate txDate = item.getTransactionDate() != null ? item.getTransactionDate() : item.getStartDate();
@@ -272,7 +281,6 @@ public class PlanLineItemController {
                     RateLookupResultDTO res = rateLookupService.lookup(item.getCurrency(), planBaseCurrency, txDate);
                     dto.setWarnings(res.getWarnings());
                     dto.setRateMeta(res.getMeta());
-                    // Legacy single-string warning retained for backward compatibility (first warning summary)
                     if (!res.getWarnings().isEmpty()) {
                         FxWarningDTO first = res.getWarnings().get(0);
                         dto.setWarning(first.getMessage());
@@ -288,32 +296,23 @@ public class PlanLineItemController {
         return dto;
     }
     
-    /**
-     * Helper method to pre-fetch FX rates for all line item dates in a plan.
-     * Gathers all transaction dates from line items and ensures rates exist + 1 year forward.
-     */
     private void ensureFxRatesForPlan(CashflowPlan plan) {
         try {
             java.util.Set<LocalDate> allDates = new java.util.HashSet<>();
             
-            // Gather all line item dates
             for (PlanLineItem item : plan.getLineItems()) {
                 if (item.getTransactionDate() != null) {
-                    // ONE_TIME
                     allDates.add(item.getTransactionDate());
                 } else if (item.getStartDate() != null && item.getEndDate() != null) {
-                    // RECURRING or CATEGORY_ADJUSTMENT
                     allDates.add(item.getStartDate());
                     allDates.add(item.getEndDate());
                 }
             }
             
-            // Pre-fetch rates for all dates + 1 year forward
             if (!allDates.isEmpty()) {
                 transactionDateRangeFxService.ensureRatesForTransactionsWithForwardCoverage(allDates);
             }
         } catch (Exception ex) {
-            // Log but don't fail - rates will be fetched on-demand if needed
             org.slf4j.LoggerFactory.getLogger(getClass())
                 .warn("Failed to pre-fetch FX rates for plan {}: {}", plan.getId(), ex.getMessage());
         }

@@ -26,7 +26,7 @@ public class FxAnalyticsService {
 
     public List<FxVolatilityDTO> getVolatility(int days) {
         int window = days <= 0 ? 30 : days;
-        LocalDate end = LocalDate.now().minusDays(1); // exclude today to avoid provisional rates
+        LocalDate end = LocalDate.now().minusDays(1); 
     LocalDate start = end.minusDays(window - 1L);
         Currency base = props.getCanonicalBase();
         List<FxVolatilityDTO> out = new ArrayList<>();
@@ -51,7 +51,6 @@ public class FxAnalyticsService {
             max = (max == null || r.compareTo(max) > 0) ? r : max;
         }
         BigDecimal mean = sum.divide(BigDecimal.valueOf(n), 10, RoundingMode.HALF_UP);
-        // sample variance (n-1)
         if (n == 1) {
             return new FxVolatilityDTO(base, quote, window, 1, mean, BigDecimal.ZERO, min, max, window != 1);
         }
@@ -62,7 +61,6 @@ public class FxAnalyticsService {
             varianceSum = varianceSum.add(sq);
         }
     BigDecimal variance = varianceSum.divide(BigDecimal.valueOf(n - 1L), 10, RoundingMode.HALF_UP);
-        // sqrt via double (precision acceptable for analytics) then BigDecimal
         BigDecimal stdDev = BigDecimal.valueOf(Math.sqrt(variance.doubleValue())).setScale(10, RoundingMode.HALF_UP);
         boolean partial = n < window;
         return new FxVolatilityDTO(base, quote, window, n, mean, stdDev, min, max, partial);

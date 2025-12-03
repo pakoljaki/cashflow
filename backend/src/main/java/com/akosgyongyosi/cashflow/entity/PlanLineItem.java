@@ -47,7 +47,7 @@ public class PlanLineItem {
     private TransactionCategory category;  
 
     private Double percentChange;  
-    private Boolean isApplied = false;  // indicates if the line item is applied to the plan
+    private Boolean isApplied = false;  
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

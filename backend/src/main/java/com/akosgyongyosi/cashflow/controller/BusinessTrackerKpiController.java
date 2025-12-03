@@ -39,7 +39,6 @@ public class BusinessTrackerKpiController {
         Currency base = (baseCurrency != null) ? baseCurrency : Currency.HUF;
 
         KpiDashboardDTO dash = kpiService.calculateForPeriod(start, end, startBalance, base);
-        // Store the balance currency (which will be the display currency on KPI page)
         dash.setBalanceCurrency(base.name());
         
         if (displayCurrency != null && displayCurrency != base) {

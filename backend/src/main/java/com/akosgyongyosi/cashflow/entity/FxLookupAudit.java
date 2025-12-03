@@ -1,10 +1,15 @@
 package com.akosgyongyosi.cashflow.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "fx_lookup_audit", indexes = {
         @Index(name = "ix_fxlookup_ts", columnList = "ts"),
@@ -40,22 +45,5 @@ public class FxLookupAudit {
     private boolean provisional;
 
     @Column(name = "warning_codes", length = 256)
-    private String warningCodes; // comma separated codes
-
-    public Long getId() { return id; }
-    public Instant getTs() { return ts; }
-    public Currency getBaseCurrency() { return baseCurrency; }
-    public void setBaseCurrency(Currency baseCurrency) { this.baseCurrency = baseCurrency; }
-    public Currency getQuoteCurrency() { return quoteCurrency; }
-    public void setQuoteCurrency(Currency quoteCurrency) { this.quoteCurrency = quoteCurrency; }
-    public LocalDate getRequestedDate() { return requestedDate; }
-    public void setRequestedDate(LocalDate requestedDate) { this.requestedDate = requestedDate; }
-    public LocalDate getEffectiveRateDate() { return effectiveRateDate; }
-    public void setEffectiveRateDate(LocalDate effectiveRateDate) { this.effectiveRateDate = effectiveRateDate; }
-    public BigDecimal getRateMid() { return rateMid; }
-    public void setRateMid(BigDecimal rateMid) { this.rateMid = rateMid; }
-    public boolean isProvisional() { return provisional; }
-    public void setProvisional(boolean provisional) { this.provisional = provisional; }
-    public String getWarningCodes() { return warningCodes; }
-    public void setWarningCodes(String warningCodes) { this.warningCodes = warningCodes; }
+    private String warningCodes; 
 }

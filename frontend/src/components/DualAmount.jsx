@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import { Tooltip, Box } from '@mui/material'
 import CurrencyBadge from './CurrencyBadge'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 import { useDisplayCurrency } from '../hooks/useDisplayCurrency'
 
 

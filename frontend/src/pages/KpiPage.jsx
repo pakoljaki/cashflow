@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../context/AppContext'
 import { buildQuery } from '../utils/queryParams'
 import YearBalanceForm from '../components/YearBalanceForm'
 import MyButton from '../components/MyButton'
@@ -35,7 +35,6 @@ export default function KpiPage() {
     setError('')
     const startDate = `${year}-01-01`
     const endDate = `${year}-12-31`
-    // Check cache first (simple reuse irrespective of staleness; enhancement: add ttl logic)
     const cached = getCachedKpi(year, baseCurrency, baseCurrency)
     if (cached?.data) {
       setKpiData({ ...cached.data, year, startBalance: Number(startBalance), baseCurrency })
@@ -50,7 +49,6 @@ export default function KpiPage() {
         endDate,
         startBalance,
         baseCurrency,
-        // Note: displayCurrency is NOT sent to the backend; KPI always shows in balance currency
       })
       const res = await fetch(`/api/business-kpi${qs}`, {
         headers: { Authorization: `Bearer ${token}` },

@@ -51,7 +51,6 @@ public class CashflowPlanService {
         return doCreatePlan(planName, start, end, scenario, startBalance, groupKey, null);
     }
 
-    // Internal helper avoids transactional self-invocation warning
     private CashflowPlan doCreatePlan(String planName,
                                       LocalDate start,
                                       LocalDate end,
@@ -68,7 +67,6 @@ public class CashflowPlanService {
         plan.setScenario(scenario);
         plan.setStartBalance(startBalance);
     plan.setBaselineTransactions(new ArrayList<>());
-    // Use the provided baseCurrency if specified, otherwise infer from prior year transactions
     Currency effectiveBaseCurrency = (baseCurrency != null) ? baseCurrency : inferBaseCurrency(start, end);
     plan.setBaseCurrency(effectiveBaseCurrency);
 
@@ -121,7 +119,6 @@ public class CashflowPlanService {
         List<Transaction> lastYear = transactionRepository.findByBookingDateBetween(start.minusYears(1), end.minusYears(1));
         boolean hasHuf = lastYear.stream().anyMatch(t -> t.getCurrency() == Currency.HUF);
         boolean hasEur = lastYear.stream().anyMatch(t -> t.getCurrency() == Currency.EUR);
-        // Prefer HUF if present (legacy default), else EUR, else USD fallback.
         if (hasHuf) return Currency.HUF;
         if (hasEur) return Currency.EUR;
         return lastYear.stream().map(Transaction::getCurrency).findFirst().orElse(Currency.HUF);
@@ -131,7 +128,6 @@ public class CashflowPlanService {
     public CashflowPlan regenerateBaseline(Long planId) {
         CashflowPlan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new NoSuchElementException("Plan not found: " + planId));
-        // Clear existing baseline
         plan.getBaselineTransactions().clear();
         FxRequestCache cache = new FxRequestCache(fxService);
         List<Transaction> lastYearTransactions = transactionRepository

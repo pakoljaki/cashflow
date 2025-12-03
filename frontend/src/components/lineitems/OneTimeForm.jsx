@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import CurrencySelect from '../CurrencySelect'
-import { useCurrency } from '../../context/CurrencyContext'
+import { useCurrency } from '../../context/AppContext'
 import {
   Box,
   Typography,
@@ -32,6 +32,7 @@ export default function OneTimeForm({ plans, onSuccess }) {
     scenarios.reduce((acc, s) => ({ ...acc, [s]: { active: false, amount: '' } }), {})
   )
   const [message, setMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
   const { basePlanCurrency } = useCurrency()
   const [currency, setCurrency] = useState(basePlanCurrency || 'HUF')
 
@@ -81,43 +82,49 @@ export default function OneTimeForm({ plans, onSuccess }) {
   }
 
   const handleSubmit = async () => {
-    if (!title.trim() || !transactionDate) return
-    let sharedId = null, count = 0, warnings = []
-    for (let plan of plans) {
-      const sc = plan.scenario
-      if (!scenarioData[sc].active) continue
-      const body = {
-        title: title.trim(),
-        type: 'ONE_TIME',
-        amount: Number.parseFloat(scenarioData[sc].amount) || 0,
-        transactionDate,
-        categoryId: selectedCategoryId || null,
-        currency
-      }
-      if (sharedId) body.assumptionId = sharedId
-      const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(body)
-      })
-      if (resp.ok) {
-        const item = await resp.json()
-        if (!sharedId) sharedId = item?.assumptionId
-        if (item?.warning && !warnings.includes(item.warning)) {
-          warnings.push(item.warning)
+    if (!title.trim() || !transactionDate || isSaving) return
+    setIsSaving(true)
+    setMessage('')
+    try {
+      let sharedId = null, count = 0, warnings = []
+      for (let plan of plans) {
+        const sc = plan.scenario
+        if (!scenarioData[sc].active) continue
+        const body = {
+          title: title.trim(),
+          type: 'ONE_TIME',
+          amount: Number.parseFloat(scenarioData[sc].amount) || 0,
+          transactionDate,
+          categoryId: selectedCategoryId || null,
+          currency
         }
-        count++
+        if (sharedId) body.assumptionId = sharedId
+        const resp = await fetch(`/api/cashflow-plans/${plan.id}/line-items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(body)
+        })
+        if (resp.ok) {
+          const item = await resp.json()
+          if (!sharedId) sharedId = item?.assumptionId
+          if (item?.warning && !warnings.includes(item.warning)) {
+            warnings.push(item.warning)
+          }
+          count++
+        }
       }
+      let msg = `Created for ${count} scenario(s).`
+      if (warnings.length > 0) {
+        msg += ' ⚠️ ' + warnings.join(' ')
+      }
+      setMessage(msg)
+      onSuccess?.()
+    } finally {
+      setIsSaving(false)
     }
-    let msg = `Created for ${count} scenario(s).`
-    if (warnings.length > 0) {
-      msg += ' ⚠️ ' + warnings.join(' ')
-    }
-    setMessage(msg)
-  onSuccess?.()
   }
 
   return (
@@ -227,8 +234,12 @@ export default function OneTimeForm({ plans, onSuccess }) {
           </Box>
         ))}
       </FormGroup>
-      <Button variant="contained" onClick={handleSubmit}>
-        Save
+      <Button 
+        variant="contained" 
+        onClick={handleSubmit}
+        disabled={isSaving}
+      >
+        {isSaving ? 'Saving...' : 'Save'}
       </Button>
     </Box>
   )

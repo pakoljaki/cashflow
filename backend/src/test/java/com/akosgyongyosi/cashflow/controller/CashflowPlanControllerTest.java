@@ -8,9 +8,12 @@ import com.akosgyongyosi.cashflow.entity.CashflowPlan;
 import com.akosgyongyosi.cashflow.entity.Currency;
 import com.akosgyongyosi.cashflow.entity.ScenarioType;
 import com.akosgyongyosi.cashflow.repository.CashflowPlanRepository;
+import com.akosgyongyosi.cashflow.service.AuditLogService;
 import com.akosgyongyosi.cashflow.service.CashflowPlanService;
 import com.akosgyongyosi.cashflow.service.kpi.KpiCalculationService;
 import org.junit.jupiter.api.BeforeEach;
+
+import java.security.Principal;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -29,6 +32,8 @@ class CashflowPlanControllerTest {
     private CashflowPlanService planService;
     private KpiCalculationService kpiService;
     private CashflowPlanRepository planRepository;
+    private AuditLogService auditLogService;
+    private Principal principal;
     private CashflowPlanController controller;
 
     @BeforeEach
@@ -36,7 +41,10 @@ class CashflowPlanControllerTest {
         planService = mock(CashflowPlanService.class);
         kpiService = mock(KpiCalculationService.class);
         planRepository = mock(CashflowPlanRepository.class);
-        controller = new CashflowPlanController(planService, kpiService, planRepository);
+        auditLogService = mock(AuditLogService.class);
+        principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("test@example.com");
+        controller = new CashflowPlanController(planService, kpiService, planRepository, auditLogService);
     }
 
     @Test
@@ -48,7 +56,7 @@ class CashflowPlanControllerTest {
                 .thenReturn(plan);
         when(planRepository.save(any(CashflowPlan.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        var response = controller.createPlanForCurrentYear("2025 Plan", Currency.HUF);
+        var response = controller.createPlanForCurrentYear("2025 Plan", Currency.HUF, principal);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).isNotNull();
@@ -59,10 +67,11 @@ class CashflowPlanControllerTest {
     @Test
     void createPlanForCurrentYear_defaults_to_HUF_when_no_currency_specified() {
         CashflowPlan plan = new CashflowPlan();
+        plan.setId(1L);
         when(planService.createPlanForInterval(anyString(), any(), any(), anyString())).thenReturn(plan);
         when(planRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        var response = controller.createPlanForCurrentYear("Plan", null);
+        var response = controller.createPlanForCurrentYear("Plan", null, principal);
 
         assertThat(response.getBody().getBaseCurrency()).isEqualTo(Currency.HUF);
     }
@@ -81,7 +90,7 @@ class CashflowPlanControllerTest {
         when(planService.createPlanForInterval(anyString(), any(), any(), anyString())).thenReturn(plan);
         when(planRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        var response = controller.createPlanForInterval(request);
+        var response = controller.createPlanForInterval(request, principal);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         verify(planService).createPlanForInterval(eq("Q1 Plan"), any(), any(), anyString());
@@ -94,7 +103,7 @@ class CashflowPlanControllerTest {
         request.setStartDate(LocalDate.of(2025, 1, 1));
         request.setEndDate(LocalDate.of(2025, 12, 31));
 
-        var response = controller.createPlanForInterval(request);
+        var response = controller.createPlanForInterval(request, principal);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
         verify(planService, never()).createPlanForInterval(anyString(), any(), any(), anyString());
@@ -107,7 +116,7 @@ class CashflowPlanControllerTest {
         request.setStartDate(LocalDate.of(2025, 12, 31));
         request.setEndDate(LocalDate.of(2025, 1, 1));
 
-        var response = controller.createPlanForInterval(request);
+        var response = controller.createPlanForInterval(request, principal);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
     }
@@ -177,17 +186,23 @@ class CashflowPlanControllerTest {
         request.setBaseCurrency(Currency.EUR);
 
         CashflowPlan worst = new CashflowPlan();
+        worst.setId(1L);
         worst.setScenario(ScenarioType.WORST);
+        worst.setGroupKey("test-group");
         CashflowPlan realistic = new CashflowPlan();
+        realistic.setId(2L);
         realistic.setScenario(ScenarioType.REALISTIC);
+        realistic.setGroupKey("test-group");
         CashflowPlan best = new CashflowPlan();
+        best.setId(3L);
         best.setScenario(ScenarioType.BEST);
+        best.setGroupKey("test-group");
 
         when(planService.createAllScenarioPlans(anyString(), any(), any(), any(), any()))
                 .thenReturn(List.of(worst, realistic, best));
         when(planRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        var response = controller.createScenarioPlans(request);
+        var response = controller.createScenarioPlans(request, principal);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).hasSize(3);
@@ -200,7 +215,7 @@ class CashflowPlanControllerTest {
         request.setStartDate(LocalDate.of(2025, 12, 31));
         request.setEndDate(LocalDate.of(2025, 1, 1));
 
-        var response = controller.createScenarioPlans(request);
+        var response = controller.createScenarioPlans(request, principal);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
     }
@@ -236,7 +251,7 @@ class CashflowPlanControllerTest {
     void deletePlanGroup_deletes_group_and_returns_no_content() {
         when(planService.deletePlanGroup("group-123")).thenReturn(true);
 
-        var response = controller.deletePlanGroup("group-123");
+        var response = controller.deletePlanGroup("group-123", principal);
 
         assertThat(response.getStatusCode().value()).isEqualTo(204);
         verify(planService).deletePlanGroup("group-123");
@@ -246,7 +261,7 @@ class CashflowPlanControllerTest {
     void deletePlanGroup_returns_not_found_when_group_does_not_exist() {
         when(planService.deletePlanGroup("nonexistent")).thenReturn(false);
 
-        var response = controller.deletePlanGroup("nonexistent");
+        var response = controller.deletePlanGroup("nonexistent", principal);
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
     }

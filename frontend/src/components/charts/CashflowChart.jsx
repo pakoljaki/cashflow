@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react'
 import { Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material'
-import { useCurrency } from '../../context/CurrencyContext'
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -15,8 +14,7 @@ import {
 } from 'recharts'
 import { formatAmount } from '../../utils/numberFormatter'
 
-export default function CashflowChart({ monthlyData = [] }) {
-  const { displayCurrency } = useCurrency()
+export default function CashflowChart({ monthlyData = [], baseCurrency = 'HUF' }) {
   const [selectedScenario, setSelectedScenario] = useState('REALISTIC')
   
   // Collect ALL unique categories and directions across ALL months
@@ -96,7 +94,7 @@ export default function CashflowChart({ monthlyData = [] }) {
             tickFormatter={val => formatAmount(val)}
             tick={{ fontSize: 12 }}
             width={50}
-            label={{ value: displayCurrency, angle: -90, position: 'insideLeft', fontSize: 10 }}
+            label={{ value: baseCurrency, angle: -90, position: 'insideLeft', fontSize: 10 }}
           />
           <YAxis
             yAxisId="right"
@@ -105,7 +103,7 @@ export default function CashflowChart({ monthlyData = [] }) {
             tickFormatter={val => formatAmount(val)}
             tick={{ fontSize: 12 }}
             width={50}
-            label={{ value: displayCurrency, angle: 90, position: 'insideRight', fontSize: 10 }}
+            label={{ value: baseCurrency, angle: 90, position: 'insideRight', fontSize: 10 }}
           />
           <Tooltip
             formatter={(value, name) => [formatAmount(value), name]}
